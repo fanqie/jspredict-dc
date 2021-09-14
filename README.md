@@ -1,6 +1,6 @@
 ####说明
-- 此库用于通过两行根数推导星例
-- 切换公司内部库原因：此版本对公开库源码bug进行了修正
+- 此库用于通过两行根数推导星历
+- 此版本对公开库源码bug进行了修正
 - 增加了两个配置函数
 ```
 //是否输出时间间隔信息 会输出每个间隔中文时间点
@@ -18,13 +18,13 @@
 ```
 - 安装
 ```shell
-npm install http://gitlab.hl.xa:9000/dangchegncheng/jspredict-hl.git
+npm install jspredict-dc
 or
-yarn add http://gitlab.hl.xa:9000/dangchegncheng/jspredict-hl.git
+yarn add jspredict-dc
 ```
 - 删除 
 ```shell
-yarn remove jspredict
+yarn remove jspredict-dc
 ```
 ### ↓↓↓↓↓↓ 以下为原版信息  ↓↓↓↓↓↓     
 # JsPredict
