@@ -1,12 +1,12 @@
 {
-  "name": "jspredict",
-  "version": "1.1.1",
-  "private": true,
+  "name": "jspredict-dc",
+  "version": "1.1.2",
+  "private": false,
   "description": "javascript port of predict open-source satellite tracking library",
-  "main": "jspredict.js",
+  "main": "jspredict-dc.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nsat/jspredict"
+    "url": "https://gitee.com/dangcheng/jspredict-dc"
   },
   "keywords": [
     "satellite",
@@ -27,9 +27,9 @@
   "author": "Roshan Jobanputra <roshan@spire.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/nsat/jspredict/issues"
+    "url": "https://gitee.com/dangcheng/jspredict-dc/issues"
   },
-  "homepage": "https://github.com/nsat/jspredict",
+  "homepage": "https://gitee.com/dangcheng/jspredict-dc",
   "dependencies": {
     "moment": "^2.24.0",
     "satellite.js": "^3.0.1"
