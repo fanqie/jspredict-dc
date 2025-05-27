@@ -37,7 +37,7 @@ bower install jspredict
 
 Download and include `moment.js`: http://momentjs.com/
 
-Include both `satellite.js` and `jspredict.js` to get `satellite` and `jspredict` available on the global `window` namespace.
+Include both `satellite.js` and `jspredict-dc.js` to get `satellite` and `jspredict` available on the global `window` namespace.
 
 ## API
 
@@ -66,23 +66,52 @@ transits(tle 'required', qth 'required', start 'optional', end 'required', minEl
 ### Observe a Satellite:
 
 ```js
-> var tle = '0 LEMUR-2 JEROEN\n1 40934U 15052E   15306.10048119  .00001740  00000-0  15647-3 0  9990\n2 40934   6.0033 141.2190 0010344 133.6141 226.4604 14.76056230  5130';
-> var jspredict = require('jspredict');
-> jspredict.observe(tle, null);
-{ eci:
-   { position:
-      { x: 6780.217861682045,
-        y: -1754.945569075624,
-        z: -382.1001487529574 },
-     velocity:
-      { x: 1.8548312182745958,
-        y: 7.28225574805238,
-        z: -0.6742937006920255 } },
-  gmst: 1.2743405900207918,
-  latitude: -3.141891992384467,
-  longitude: -87.52591692501754,
-  altitude: 635.9975103859342,
-  footprint: 5474.178485006438 }
+>
+var tle = '0 LEMUR-2 JEROEN\n1 40934U 15052E   15306.10048119  .00001740  00000-0  15647-3 0  9990\n2 40934   6.0033 141.2190 0010344 133.6141 226.4604 14.76056230  5130';
+>
+var jspredict = require('jspredict-dc');
+>
+jspredict.observe(tle, null);
+{
+    eci:
+    {
+        position:
+        {
+            x: 6780.217861682045,
+                y
+        :
+            -1754.945569075624,
+                z
+        :
+            -382.1001487529574
+        }
+    ,
+        velocity:
+        {
+            x: 1.8548312182745958,
+                y
+        :
+            7.28225574805238,
+                z
+        :
+            -0.6742937006920255
+        }
+    }
+,
+    gmst: 1.2743405900207918,
+        latitude
+:
+    -3.141891992384467,
+        longitude
+:
+    -87.52591692501754,
+        altitude
+:
+    635.9975103859342,
+        footprint
+:
+    5474.178485006438
+}
 ```
 
 ### Observe a Satellite from an Observer at 15 lat, 130, lon, 10m alt:

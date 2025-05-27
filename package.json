@@ -1,8 +1,8 @@
 {
-  "name": "jspredict",
-  "version": "1.2.0",
+  "name": "jspredict-dc",
+  "version": "1.2.1",
   "description": "javascript port of predict open-source satellite tracking library",
-  "main": "jspredict.js",
+  "main": "jspredict-dc.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/nsat/jspredict"

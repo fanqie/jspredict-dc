@@ -64,7 +64,7 @@
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? module.exports = factory() :
     typeof define === 'function' && define.amd ? define(factory) :
-    global.jspredict = factory()
+    global. jspredict_dc = factory()
 }(this, function () {
   // Meteor includes the moment dependency differently than Npm or Bower,
   // so we need this hack (using m_moment) else it gets upset about moment = require('moment');
@@ -86,10 +86,17 @@
   var solar_radius = 6.96000E5; // solar radius - km (IAU 76)
   var deg2rad = Math.PI / 180;
   var ms2day = 1000 * 60 * 60 * 24; // milliseconds to day
-  var max_iterations = 250;
+  var max_iterations = 99999999;
   var defaultMinElevation = 4; // degrees
+  var printIntervalInfo = false;
 
   var _jspredict = {
+    printIntervalInfo: function (open) {
+      printIntervalInfo = open || false;
+    },
+    setMax: function (max) {
+      max_iterations = max || max_iterations;
+    },
     observe: function(tle, qth, start) {
       var tles = tle.split('\n');
       var satrec = satellite.twoline2satrec(tles[1], tles[2]);
@@ -121,6 +128,10 @@
         }
         observes.push(observed);
         start.add(interval);
+        if (printIntervalInfo) {
+          start.locale("zh-cn");
+          console.log(start.format("llll"));
+        }
         iterations += 1;
       }
 
