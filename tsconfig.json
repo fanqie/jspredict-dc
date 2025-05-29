@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "outDir": "dist/types",
+    "allowJs": true,
+    "checkJs": false,
+    "module": "ESNext",
+    "target": "ES2018",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "jspredict-dc.ts"
+  ]
+} 

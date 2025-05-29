@@ -2,11 +2,21 @@
   "name": "jspredict-dc",
   "version": "1.2.1",
   "description": "javascript port of predict open-source satellite tracking library",
-  "main": "jspredict-dc.js",
+  "main": "dist/jspredict-dc.cjs.js",
+  "module": "dist/jspredict-dc.esm.js",
   "repository": {
     "type": "git",
     "url": "https://github.com/nsat/jspredict"
   },
+  "types": "types/jspredict-dc.d.ts",
+  "exports": {
+    "import": "./dist/jspredict-dc.esm.js",
+    "require": "./dist/jspredict-dc.cjs.js",
+    "default": "./dist/jspredict-dc.umd.js"
+  },
+  "files": [
+    "dist"
+  ],
   "keywords": [
     "satellite",
     "orbit",
@@ -32,5 +42,19 @@
   "dependencies": {
     "moment": "^2.24.0",
     "satellite.js": "^3.0.1"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.3",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@types/jest": "^29.5.14",
+    "jest": "^29.7.0",
+    "rollup": "^4.41.1",
+    "rollup-plugin-dts": "^6.2.1"
+  },
+  "scripts": {
+    "build": "rollup -c",
+    "test": "jest"
   }
 }

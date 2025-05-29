@@ -1,178 +1,197 @@
-# JsPredict
+[中文](README.zh-CN.md) | English
 
-A Javascript port of the popular `predict` satellite tracking library.
+# JSpredict-DC
+
+A refactored and enhanced Javascript port of the popular `predict` satellite tracking library, originally based on [nsat/jspredict](https://github.com/nsat/jspredict).
+
+This fork aims to provide a more modern and maintainable codebase with better module compatibility and TypeScript support.
 
 ### Based on:
-- PREDICT: http://www.qsl.net/kd2bd/predict.html
-- PyPredict: https://github.com/nsat/pypredict
-- Python-SGP4: https://github.com/brandon-rhodes/python-sgp4
+
+*   PREDICT: <http://www.qsl.net/kd2bd/predict.html>
+*   PyPredict: <https://github.com/nsat/pypredict>
+*   Python-SGP4: <https://github.com/brandon-rhodes/python-sgp4>
+*   Original Javascript port: [nsat/jspredict](https://github.com/nsat/jspredict)
+
+### Key Improvements:
+
+*   **Code Refactoring:** Cleaned up and modernized the internal codebase.
+*   **Module Compatibility:** Built with Rollup to support various module formats including ESM, CJS, UMD, and AMD.
+*   **TypeScript Support:** Includes TypeScript declaration files (`.d.ts`) for better developer experience in TypeScript projects.
+*   **Unit Tests:** Added unit tests using Jest to ensure core functionality remains accurate and stable.
 
 ### Depends on:
-- Satellite.js: https://github.com/shashwatak/satellite-js
-- Moment.js: https://github.com/moment/moment
+
+*   [Satellite.js](https://github.com/shashwatak/satellite-js)
+*   [Moment.js](https://github.com/moment/moment)
 
 ## Installation
 
-JsPredict has been pushed to the `NPM`, `Meteor` (Atmosphere), and `Bower` package registries, and can also be used by including the src file directly.
+Install the library via npm:
 
-### NPM
-
+```bash
+npm install jspredict-dc
 ```
-npm install jspredict
-```
-
-### Meteor
-
-```
-meteor add rosh93:jspredict
-```
-
-### Bower
-
-```
-bower install jspredict
-```
-
-### Manual Include
-
-Download and include `moment.js`: http://momentjs.com/
-
-Include both `satellite.js` and `jspredict-dc.js` to get `satellite` and `jspredict` available on the global `window` namespace.
 
 ## API
 
-#### Input Types
+The refactored library exposes the following main methods:
 
-```js
-tle = 3 line string with "\n" character line breaks
+*   `jspredict_dc.getPositionByTime(tle: string, observerLocation?: ObserverLocation, time?: number | Date): ObserveResult | null`
+    Calculates the satellite's position and other observation data for a specific time and optional observer location.
+*   `jspredict_dc.getEphemeris(tle: string, observerLocation: ObserverLocation, start: number | Date, end: number | Date, interval?: any): ObserveResult[]`
+    Calculates a series of satellite observations over a time range with a specified interval.
+*   `jspredict_dc.transits(tle: string, observerLocation: ObserverLocation, start: number | Date, end: number | Date, minElevation?: number, maxTransits?: number): Transit[]`
+    Finds satellite passes (transits) over a given observer location within a time window, filtered by minimum elevation and maximum number of transits.
+*   `jspredict_dc.transitSegment(tle: string, observerLocation: ObserverLocation, start: number | Date, end: number | Date): Transit | null`
+    Calculates the transit information for a specific time segment.
 
-qth = 3 element array [latitude (degrees), longitude (degrees), altitude (km)]
+See the TypeScript declaration file (`dist/jspredict-dc.d.ts`) for detailed type definitions.
 
-time, start, or end = unix timestamp (ms) or date object "new Date()"
+**Input Types:**
+
+*   `tle`: 3 line string with "\n" character line breaks.
+*   `observerLocation`: 3 element array `[latitude (degrees), longitude (degrees), altitude (km)]`.
+*   `time`, `start`, `end`: Unix timestamp (ms) or Date object (`new Date()`).
+*   `interval`: Moment.js duration object or similar structure accepted by `moment.add()`.
+
+## Data Structures
+
+Here are the main data structures used and returned by the library methods:
+
+### ObserverLocation
+
+An array representing a ground station's location: `[latitude (degrees), longitude (degrees), altitude (km)]`.
+
+### Transit
+
+Represents information about a satellite's visible pass over a ground station.
+
+*   `start` (number): Transit start time in milliseconds Unix timestamp.
+*   `end` (number): Transit end time in milliseconds Unix timestamp.
+*   `maxElevation` (number): Maximum elevation during the transit in degrees.
+*   `apexAzimuth` (number): Azimuth at the time of maximum elevation in degrees.
+*   `maxAzimuth` (number): Maximum azimuth during the transit in degrees.
+*   `minAzimuth` (number): Minimum azimuth during the transit in degrees.
+*   `duration` (number): Transit duration in milliseconds.
+
+### Eci
+
+Represents Earth-Centered Inertial coordinates (position and velocity).
+
+*   `position` (object): Satellite's position in ECI coordinates (km).
+    *   `x` (number)
+    *   `y` (number)
+    *   `z` (number)
+*   `velocity` (object): Satellite's velocity in ECI coordinates (km/s).
+    *   `x` (number)
+    *   `y` (number)
+    *   `z` (number)
+
+### ObserveResult
+
+Represents the satellite observation data for a specific time. Includes basic orbital data and optionally ground observer data if a observerLocation is provided.
+
+*   `eci` (Eci): Satellite's position and velocity in ECI coordinates.
+*   `gmst` (number): Greenwich Mean Sidereal Time in radians.
+*   `latitude` (number): Satellite's latitude in Geodetic coordinates (degrees).
+*   `longitude` (number): Satellite's longitude in Geodetic coordinates (degrees).
+*   `altitude` (number): Satellite's altitude in Geodetic coordinates (km).
+*   `footprint` (number): Diameter of the area on the ground visible from the satellite (km).
+*   `sunlit` (boolean): Whether the satellite is illuminated by the sun.
+*   `eclipseDepth` (number): Depth of the satellite within the Earth's shadow (radians).
+*   `azimuth` (number | undefined): Azimuth from the ground observer to the satellite (degrees). **Calculated only if observerLocation is provided.**
+*   `elevation` (number | undefined): Elevation from the ground observer to the satellite (degrees). **Calculated only if observerLocation is provided.**
+*   `rangeSat` (number | undefined): Slant range from the ground observer to the satellite (km). **Calculated only if observerLocation is provided.**
+*   `doppler` (number | undefined): Doppler factor of the satellite as observed from the ground observer. **Calculated only if observerLocation is provided.**
+
+## Usage Examples
+
+Using ESM (e.g., with modern build tools):
+
+```javascript
+import jspredict_dc, { ObserverLocation } from 'jspredict-dc'; // ObserverLocation type is also exported
+
+const tle = `STARLINK-1008\n1 44714C 19074B   25148.13868056  .00017318  00000+0  11598-2 0  1489\n2 44714  53.0556  28.5051 0001501  80.1165 230.1605 15.06396864    11`;
+const observerLocation: ObserverLocation = [39.9042, 116.4074, 0.05]; // Beijing, 50m altitude
+
+// Get position at a specific time
+const observationTime = new Date('2024-05-28T12:00:00Z');
+const position = jspredict_dc.getPositionByTime(tle, observerLocation, observationTime);
+console.log('Position:', position);
+
+// Get ephemeris over a time range
+const startTime = new Date('2024-05-28T12:00:00Z');
+const endTime = new Date('2024-05-28T12:10:00Z');
+const interval = { minutes: 2 };
+const ephemeris = jspredict_dc.getEphemeris(tle, observerLocation, startTime, endTime, interval);
+console.log('Ephemeris:', ephemeris);
+
+// Find visible transits
+const transitStartTime = new Date('2024-05-28T00:00:00Z');
+const transitEndTime = new Date('2024-05-29T00:00:00Z');
+const minElevation = 5; // degrees
+const maxTransits = 2;
+const transits = jspredict_dc.transits(tle, observerLocation, transitStartTime, transitEndTime, minElevation, maxTransits);
+console.log('Transits:', transits);
 ```
 
-#### Methods
+Using CommonJS (e.g., in Node.js):
 
-```js
-observe(tle 'required', qth 'optional', time 'optional')
+```javascript
+const jspredict_dc = require('jspredict-dc');
 
-observes(tle 'required', qth 'optional', start 'optional', end 'required', interval 'optional')
+const tle = `STARLINK-1008\n1 44714C 19074B   25148.13868056  .00017318  00000+0  11598-2 0  1489\n2 44714  53.0556  28.5051 0001501  80.1165 230.1605 15.06396864    11`;
+const observerLocation = [39.9042, 116.4074, 0.05]; // Beijing, 50m altitude
 
-transits(tle 'required', qth 'required', start 'optional', end 'required', minElevation 'optional', maxTransits 'optional')
+// Get position at a specific time
+const observationTime = new Date('2024-05-28T12:00:00Z');
+const position = jspredict_dc.getPositionByTime(tle, observerLocation, observationTime);
+console.log('Position:', position);
+
+// Get ephemeris over a time range
+const startTime = new Date('2024-05-28T12:00:00Z');
+const endTime = new Date('2024-05-28T12:10:00Z');
+const interval = { minutes: 2 };
+const ephemeris = jspredict_dc.getEphemeris(tle, observerLocation, startTime, endTime, interval);
+console.log('Ephemeris:', ephemeris);
+
+// Find visible transits
+const transitStartTime = new Date('2024-05-28T00:00:00Z');
+const transitEndTime = new Date('2024-05-29T00:00:00Z');
+const minElevation = 5; // degrees
+const maxTransits = 2;
+const transits = jspredict_dc.transits(tle, observerLocation, transitStartTime, transitEndTime, minElevation, maxTransits);
+console.log('Transits:', transits);
 ```
 
-## Examples
+Using a script tag (UMD format):
 
-### Observe a Satellite:
+```html
+<script src="path/to/your/dist/jspredict-dc.umd.js"></script>
+<script>
+  const tle = `STARLINK-1008\n1 44714C 19074B   25148.13868056  .00017318  00000+0  11598-2 0  1489\n2 44714  53.0556  28.5051 0001501  80.1165 230.1605 15.06396864    11`;
+  const observerLocation = [39.9042, 116.4074, 0.05]; // Beijing, 50m altitude
+  const observationTime = new Date('2024-05-28T12:00:00Z');
 
-```js
->
-var tle = '0 LEMUR-2 JEROEN\n1 40934U 15052E   15306.10048119  .00001740  00000-0  15647-3 0  9990\n2 40934   6.0033 141.2190 0010344 133.6141 226.4604 14.76056230  5130';
->
-var jspredict = require('jspredict-dc');
->
-jspredict.observe(tle, null);
-{
-    eci:
-    {
-        position:
-        {
-            x: 6780.217861682045,
-                y
-        :
-            -1754.945569075624,
-                z
-        :
-            -382.1001487529574
-        }
-    ,
-        velocity:
-        {
-            x: 1.8548312182745958,
-                y
-        :
-            7.28225574805238,
-                z
-        :
-            -0.6742937006920255
-        }
-    }
-,
-    gmst: 1.2743405900207918,
-        latitude
-:
-    -3.141891992384467,
-        longitude
-:
-    -87.52591692501754,
-        altitude
-:
-    635.9975103859342,
-        footprint
-:
-    5474.178485006438
-}
+  // The library is available globally as jspredict_dc
+  const position = jspredict_dc.getPositionByTime(tle, observerLocation, observationTime);
+  console.log('Position:', position);
+</script>
 ```
 
-### Observe a Satellite from an Observer at 15 lat, 130, lon, 10m alt:
+## Building
 
-```js
-> var tle = '0 LEMUR-2 JEROEN\n1 40934U 15052E   15306.10048119  .00001740  00000-0  15647-3 0  9990\n2 40934   6.0033 141.2190 0010344 133.6141 226.4604 14.76056230  5130';
-> var qth = [15, 130, .1];
-> jspredict.observe(tle, qth);
-{ eci:
-   { position:
-      { x: 6808.890168241923,
-        y: -1638.1745052042197,
-        z: -392.83171494347425 },
-     velocity:
-      { x: 1.729088700801128,
-        y: 7.313653076194647,
-        z: -0.6671038712037236 } },
-  gmst: 1.275507328110315,
-  latitude: -3.2301661539920232,
-  longitude: -86.6090669346031,
-  altitude: 636.124394452163,
-  footprint: 5474.682764305541,
-  azimuth: 75.42118188269167,
-  elevation: -70.0809770796008,
-  rangeSat: 12666.306550391646,
-  doppler: 1.0000075435881037 }
+To build the library and generate the `dist` files:
+
+```bash
+npm run build
 ```
 
-### Get Transits for Satellite and Observer (minimum elevation of 2 degrees; obtain a maximum of 4 transits)
+## Testing
 
-```js
-> var tle = '0 LEMUR-2 JEROEN\n1 40934U 15052E   15306.10048119  .00001740  00000-0  15647-3 0  9990\n2 40934   6.0033 141.2190 0010344 133.6141 226.4604 14.76056230  5130';
-> var qth = [15, 130, .1];
-> jspredict.transits(tle, qth, 1446516345242, 1446545135046, 2, 4);
-[ { start: 1446519623929.2715,
-    end: 1446520436786.1265,
-    maxElevation: 26.592307317708126,
-    apexAzimuth: 173.44894443969358,
-    maxAzimuth: 244.2708297009277,
-    minAzimuth: 108.07476128814045,
-    duration: 812856.8549804688 },
-  { start: 1446525901933.6611,
-    end: 1446526693580.5254,
-    maxElevation: 24.777958881102588,
-    apexAzimuth: 170.71484739848532,
-    maxAzimuth: 244.97838417889344,
-    minAzimuth: 110.85020906380568,
-    duration: 791646.8642578125 },
-  { start: 1446532176864.1306,
-    end: 1446533027054.9875,
-    maxElevation: 20.48579856021555,
-    apexAzimuth: 194.49205827738396,
-    maxAzimuth: 242.43145831257118,
-    minAzimuth: 114.97146874644389,
-    duration: 850190.8569335938 },
-  { start: 1446538461828.8735,
-    end: 1446539183964.2942,
-    maxElevation: 15.359176537330036,
-    apexAzimuth: 188.34763284223402,
-    maxAzimuth: 236.24036969182643,
-    minAzimuth: 123.49296057832372,
-    duration: 722135.4206542969 } ]
->
+To run the unit tests:
+
+```bash
+npm test
 ```
