@@ -5,7 +5,7 @@ declare module 'jspredict-dc' {
      * Array format: [latitude (degrees), longitude (degrees), altitude (km)].
      */
     export type ObserverLocation = [number, number, number];
-  
+
     /**
      * 卫星可见过境信息 (Satellite Visible Transit Information).
      */
@@ -110,7 +110,7 @@ declare module 'jspredict-dc' {
        */
       doppler?: number;
     }
-  
+
     /**
      * JSpredict-DC 库的核心接口 (Core interface for the JSpredict-DC library).
      */
@@ -132,7 +132,7 @@ declare module 'jspredict-dc' {
        * @param start - 可选: 观测时间 (毫秒时间戳 或 Date 对象) (Optional: Observation time (milliseconds timestamp or Date object)).
        * @returns 卫星观测结果或 null (Satellite observation result or null).
        */
-      observe(
+      getPositionByTime(
         tle: string,
         observerLocation?: ObserverLocation,
         start?: number | Date
@@ -146,7 +146,7 @@ declare module 'jspredict-dc' {
        * @param interval - 可选: 时间间隔 (moment.js interval object) (Optional: Time interval (moment.js interval object)).
        * @returns 卫星观测结果数组 (Array of satellite observation results).
        */
-      observes(
+      getEphemeris(
         tle: string,
         observerLocation: ObserverLocation,
         start: number | Date,
