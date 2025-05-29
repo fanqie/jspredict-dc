@@ -6,7 +6,7 @@
   "module": "dist/jspredict-dc.esm.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/nsat/jspredict"
+    "url": "https://github.com/fanqie/jspredict-dc"
   },
   "types": "types/jspredict-dc.d.ts",
   "exports": {
@@ -36,9 +36,9 @@
   "author": "Roshan Jobanputra <roshan@spire.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/nsat/jspredict/issues"
+    "url": "https://github.com/fanqie/jspredict-dc/issues"
   },
-  "homepage": "https://github.com/nsat/jspredict",
+  "homepage": "https://github.com/fanqie/jspredict-dc",
   "dependencies": {
     "moment": "^2.24.0",
     "satellite.js": "^3.0.1"
