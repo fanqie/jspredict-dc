@@ -6,20 +6,13 @@
 
 本分支旨在提供一个更现代化、更易于维护的代码库，具有更好的模块兼容性和 TypeScript 支持。
 
-### 基于：
-
-*   PREDICT: <http://www.qsl.net/kd2bd/predict.html>
-*   PyPredict: <https://github.com/nsat/pypredict>
-*   Python-SGP4: <https://github.com/brandon-rhodes/python-sgp4>
-*   原始 JavaScript 版本: [nsat/jspredict](https://github.com/nsat/jspredict)
-
 ### 主要改进：
 
 *   **代码重构：** 清理并现代化了内部代码库。
 *   **模块兼容性：** 使用 Rollup 构建，支持包括 ESM、CJS、UMD 和 AMD 在内的多种模块格式。
 *   **TypeScript 支持：** 包含 TypeScript 声明文件（`.d.ts`），为 TypeScript 项目提供更好的开发体验。
 *   **单元测试：** 添加了使用 Jest 的单元测试，确保核心功能准确稳定。
-
+*   **功能扩展：** 增加了更多的SDK。
 ### 依赖：
 
 *   [Satellite.js](https://github.com/shashwatak/satellite-js)
@@ -35,18 +28,15 @@ npm install jspredict-dc
 
 ## API
 
-重构后的库暴露了以下主要方法：
+| 方法 | 说明                                                 |
+|------|----------------------------------------------------|
+| `jspredict_dc.getPositionByTime(tle: string, observerLocation?: ObserverLocation, time?: number \| Date): ObserveResult \| null` | 计算卫星在特定时间的位置和其他观测数据，可选择观测者位置。                      |
+| `jspredict_dc.getEphemeris(tle: string, observerLocation: ObserverLocation, start: number \| Date, end: number \| Date, interval?: any): ObserveResult[]` | 在指定的时间范围内，以指定的时间间隔计算一系列卫星观测数据。                     |
+| `jspredict_dc.transits(tle: string, observerLocation: ObserverLocation, start: number \| Date, end: number \| Date, minElevation?: number, maxTransits?: number): Transit[]` | 在给定的观测者位置和时间窗口内，查找卫星可见过境（transits），可按最小仰角和最大过境数过滤。[不支持地球同步轨道卫星] |
+| `jspredict_dc.transitSegment(tle: string, observerLocation: ObserverLocation, start: number \| Date, end: number \| Date): Transit \| null` | 计算特定时间段的过境信息。                         |
+| `jspredict_dc.getVisibilityWindows(tle: string, observerLocation: ObserverLocation, start: number \| Date, end: number \| Date): number[][]` | 返回卫星在给定观测者位置和时间范围内的可见窗口时间戳数组（每个元素为[start, end]对）。  |
 
-*   `jspredict_dc.getPositionByTime(tle: string, observerLocation?: ObserverLocation, time?: number | Date): ObserveResult | null`
-    计算卫星在特定时间的位置和其他观测数据，可选择观测者位置。
-*   `jspredict_dc.getEphemeris(tle: string, observerLocation: ObserverLocation, start: number | Date, end: number | Date, interval?: any): ObserveResult[]`
-    在指定的时间范围内，以指定的时间间隔计算一系列卫星观测数据。
-*   `jspredict_dc.transits(tle: string, observerLocation: ObserverLocation, start: number | Date, end: number | Date, minElevation?: number, maxTransits?: number): Transit[]`
-    在给定的观测者位置和时间窗口内，查找卫星可见过境（transits），可按最小仰角和最大过境数过滤。
-*   `jspredict_dc.transitSegment(tle: string, observerLocation: ObserverLocation, start: number | Date, end: number | Date): Transit | null`
-    计算特定时间段的过境信息。
-
-请参考 TypeScript 声明文件（`dist/jspredict-dc.d.ts`）获取详细类型定义。
+详细类型定义请参考 TypeScript 声明文件（`dist/jspredict-dc.d.ts`）。
 
 **输入类型：**
 

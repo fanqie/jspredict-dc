@@ -185,7 +185,22 @@ declare module 'jspredict-dc' {
         start: number | Date,
         end: number | Date
       ): Transit | null;
+      /**
+       * 获取卫星在指定观测站和时间范围内的可见窗口时间戳数组（每个元素为[start, end]对）。
+       * Returns an array of visible window time ranges (as [start, end] timestamp pairs) for the satellite over the observer location in the given time range.
+       * @param tle - 卫星的两行轨道数据 (Satellite Two-Line Element set).
+       * @param observerLocation - 地面观测站位置 [纬度, 经度, 海拔] (千米) (Ground station location [latitude, longitude, altitude] (km)).
+       * @param start - 开始时间 (毫秒时间戳 或 Date 对象) (Start time (milliseconds timestamp or Date object)).
+       * @param end - 结束时间 (毫秒时间戳 或 Date 对象) (End time (milliseconds timestamp or Date object)).
+       * @returns {number[][]} 可见窗口时间戳数组 (Array of [start, end] timestamp pairs for visible windows).
+       */
+      getVisibilityWindows(
+        tle: string,
+        observerLocation: ObserverLocation,
+        start: number | Date,
+        end: number | Date
+      ): number[][];
     }
-    declare const jspredict_dc: JSPredictDC;
+    const jspredict_dc: JSPredictDC;
     export default jspredict_dc;
   }

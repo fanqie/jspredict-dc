@@ -1,6 +1,6 @@
 {
   "name": "jspredict-dc",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "javascript port of predict open-source satellite tracking library",
   "main": "dist/jspredict-dc.cjs.js",
   "module": "dist/jspredict-dc.esm.js",
