@@ -69,7 +69,7 @@ const astro_unit = 1.49597870691E8; // Astronomical unit - km (IAU 76)
 const solar_radius = 6.96000E5; // solar radius - km (IAU 76)
 const deg2rad = Math.PI / 180;
 const ms2day = 1000 * 60 * 60 * 24; // milliseconds to day
-let max_iterations = 99999999;
+let max_iterations = 99999;
 const defaultMinElevation = 4; // degrees
 let printIntervalInfo = false;
 
@@ -125,6 +125,9 @@ const _jspredict_dc = {
    */
   getPositionByTime: function(tle, observerLocation, time) {
     const tles = tle.split('\n');
+    if (tles.length < 2 || tles.length > 3) {
+      throw new Error('Invalid TLE format: expected 2 or 3 lines');
+    }
     const satrec = satellite.twoline2satrec(tles[1], tles[2]);
 
     if (this._badSat(satrec, observerLocation, time)) {
@@ -147,6 +150,9 @@ const _jspredict_dc = {
     end = moment(end);
 
     const tles = tle.split('\n');
+    if (tles.length < 2 || tles.length > 3) {
+      throw new Error('Invalid TLE format: expected 2 or 3 lines');
+    }
     const satrec = satellite.twoline2satrec(tles[1], tles[2]);
 
     if (this._badSat(satrec, observerLocation, start)) {
@@ -182,7 +188,7 @@ const _jspredict_dc = {
    * @param {number} [maxTransits] - 返回的最大过境数.
    * @returns {Transit[]} 可见过境信息数组.
    */
-  transits: function(tle, observerLocation, start, end, minElevation, maxTransits) {
+  transits: function(tle, observerLocation, start, end, minElevation, maxTransits=100) {
     start = moment(start);
     end = moment(end);
 
@@ -195,6 +201,9 @@ const _jspredict_dc = {
     }
 
     const tles = tle.split('\n');
+    if (tles.length < 2 || tles.length > 3) {
+      throw new Error('Invalid TLE format: expected 2 or 3 lines');
+    }
     const satrec = satellite.twoline2satrec(tles[1], tles[2]);
     if (this._badSat(satrec, observerLocation, start)) {
       return [];
@@ -235,6 +244,9 @@ const _jspredict_dc = {
     end = moment(end);
 
     const tles = tle.split('\n');
+    if (tles.length < 2 || tles.length > 3) {
+      throw new Error('Invalid TLE format: expected 2 or 3 lines');
+    }
     const satrec = satellite.twoline2satrec(tles[1], tles[2]);
     if (this._badSat(satrec, observerLocation, start)) {
       return [];
@@ -242,7 +254,30 @@ const _jspredict_dc = {
 
     return this._quickPredict(satrec, observerLocation, start.valueOf(), end.valueOf());
   },
+  /**
+   * @param {string} tle - 卫星的两行轨道数据 (TLE).
+   * @param {ObserverLocation} observerLocation - 地面观测站位置 [纬度, 经度, 海拔] (千米).
+   * @param {number | Date} start - 时间段开始时间 (毫秒时间戳 或 Date 对象).
+   * @param {number | Date} end - 时间段结束时间 (毫秒时间戳 或 Date 对象).
+   * @returns {number[][]} 可见窗口时间戳数组.
+   */
+  getVisibilityWindows: function(tle, observerLocation, start, end) {
 
+    const tles = tle.split('\n');
+    if (tles.length < 2 || tles.length > 3) {
+      throw new Error('Invalid TLE format: expected 2 or 3 lines');
+    }
+    const satrec = satellite.twoline2satrec(tles[1], tles[2]);
+    if(this._isGeo(satrec)&&this._aosHappens(satrec, observerLocation)){
+      return [[start.valueOf(),  end.valueOf()]];
+    }
+    const transits = this.transits(tle, observerLocation, start, end);
+    if (!transits || transits.length === 0) {
+      return [];
+    }
+
+    return transits.map(t => [t.start, t.end]);
+  },
   _observe: function(satrec, observerLocation, start) {
     start = moment(start);
     const eci = this._eci(satrec, start);
@@ -290,6 +325,9 @@ const _jspredict_dc = {
   },
 
   _quickPredict: function(satrec, observerLocation, start, end) {
+    if(this._isGeo(satrec)){
+      return null
+    }
     let transit = {};
     let lastel = 0;
     let iterations = 0;
@@ -342,7 +380,10 @@ const _jspredict_dc = {
 
     return transit
   },
-
+  _isGeo(satrec) {
+    const revPerDay = satrec.no * 24 * 60 / (2 * Math.PI);
+    return Math.abs(revPerDay - 1.0027) < 0.005;
+  },
   _badSat: function(satrec, observerLocation, start) {
     if (observerLocation && !this._aosHappens(satrec, observerLocation)) {
       return true
