@@ -44,10 +44,10 @@ npm install jspredict-dc
 
 **输入类型：**
 
-* `tle`: 3 行字符串，使用 "\\n" 作为换行符。
-* `observerLocation`: 3 元素数组 `[纬度 (度), 经度 (度), 海拔 (千米)]`。
-* `time`, `start`, `end`: Unix 时间戳 (毫秒) 或 Date 对象 (`new Date()`)。
-* `interval`: Moment.js duration 对象或类似的、 Moment.js `add()` 方法接受的结构。
+*   `tle`: 3 行字符串，使用 "\\n" 作为换行符。
+*   `observerLocation`: 3 元素数组 `[纬度 (度), 经度 (度), 海拔 (千米)]`。
+*   `time`, `start`, `end`: Unix 时间戳 (毫秒) 或 Date 对象 (`new Date()`)。
+*   `interval`:步长间隔（毫秒）。
 
 ## 数据结构
 
