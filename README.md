@@ -47,7 +47,7 @@ See the TypeScript declaration file (`dist/jspredict-dc.d.ts`) for detailed type
 * `tle`: 3 line string with "\n" character line breaks.
 * `observerLocation`: 3 element array `[latitude (degrees), longitude (degrees), altitude (km)]`.
 * `time`, `start`, `end`: Unix timestamp (ms) or Date object (`new Date()`).
-* `interval`: Moment.js duration object or similar structure accepted by `moment.add()`.
+* `interval`: step interval in milliseconds.
 
 ## Data Structures
 
