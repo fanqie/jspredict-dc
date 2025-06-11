@@ -32,13 +32,15 @@ npm install jspredict-dc
 
 ## API
 
-| Method                                                                                                                                                                       | Description                                                                                                                                                                                          |
-|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `jspredict_dc.getPositionByTime(tle: string, observerLocation?: ObserverLocation, time?: number \| Date): ObserveResult \| null`                                             | Calculates the satellite's position and other observation data for a specific time and optional observer location.                                                                                   |
-| `jspredict_dc.getEphemeris(tle: string, observerLocation: ObserverLocation, start: number \| Date, end: number \| Date, interval?: any): ObserveResult[]`                    | Calculates a series of satellite observations over a time range with a specified interval.                                                                                                           |
+| Method                                                                                                                                                                       | Description                                                                                                                                                                                  |
+|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `jspredict_dc.getPositionByTime(tle: string, observerLocation?: ObserverLocation, time?: number \| Date): ObserveResult \| null`                                             | Calculates the satellite's position and other observation data for a specific time and optional observer location.                                                                           |
+| `jspredict_dc.getEphemeris(tle: string, observerLocation: ObserverLocation, start: number \| Date, end: number \| Date, interval?: any): ObserveResult[]`                    | Calculates a series of satellite observations over a time range with a specified interval.                                                                                                   |
 | `jspredict_dc.transits(tle: string, observerLocation: ObserverLocation, start: number \| Date, end: number \| Date, minElevation?: number, maxTransits?: number): Transit[]` | Finds satellite passes (transits) over a given observer location within a time window, filtered by minimum elevation and maximum number of transits. [Not supporting geostationary orbit satellites] |
-| `jspredict_dc.transitSegment(tle: string, observerLocation: ObserverLocation, start: number \| Date, end: number \| Date): Transit \| null`                                  | Calculates the transit information for a specific time segment.                                                                                                                                      |
-| `jspredict_dc.getVisibilityWindows(tle: string, observerLocation: ObserverLocation, start: number \| Date, end: number \| Date): number[][]`                                 | Returns an array of visible window time ranges (as [start, end] timestamp pairs) for the satellite over the observer location in the given time range.                                               |
+| `jspredict_dc.transitSegment(tle: string, observerLocation: ObserverLocation, start: number \| Date, end: number \| Date): Transit \| null`                                  | Calculates the transit information for a specific time segment.                                                                                                                              |
+| `jspredict_dc.getVisibilityWindows(tle: string, observerLocation: ObserverLocation, start: number \| Date, end: number \| Date): number[][]`                                 | Returns an array of visible window time ranges (as [start, end] timestamp pairs) for the satellite over the observer location in the given time range.                                       |
+| `getOrbitalPeriodByTle(tle: string):  number`                                                                                                                                | Get Orbital Period by TLE.    (second)                                                                                                                                                                |
+| `getOrbitalPeriodByCartesian3(cartesian3: [number,number,number]=[0,0,0]):  number;`                                                                                         | Get Orbital Period by Cartesian3. (second)                                                                                                                                                       |
 
 See the TypeScript declaration file (`dist/jspredict-dc.d.ts`) for detailed type definitions.
 
@@ -162,6 +164,12 @@ const minElevation = 5; // degrees
 const maxTransits = 2;
 const transits = jspredict_dc.transits(tle, observerLocation, transitStartTime, transitEndTime, minElevation, maxTransits);
 console.log('Transits:', transits);
+
+// getOrbitalPeriod
+const res = jspredict.getOrbitalPeriodByTle(tle);
+const pos =jspredict.getPositionByTime(tle, observerLocation, new Date())
+const res2=jspredict.getOrbitalPeriodByCartesian3([pos.eci.position.x,  pos.eci.position.y, pos.eci.position.z])
+console.log(res,res2)
 ```
 
 Using a script tag (UMD format):

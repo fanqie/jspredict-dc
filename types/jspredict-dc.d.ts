@@ -200,6 +200,19 @@ declare module 'jspredict-dc' {
         start: number | Date,
         end: number | Date
       ): number[][];
+
+        /**
+         * 根据tle  获取轨道周期
+         * @param tle {string}
+         * @returns {number}
+         */
+        getOrbitalPeriodByTle(tle: string):  number;
+        /**
+         * 根据坐标  获取轨道周期
+         * @param cartesian3 {[number,number,number]}
+         * @returns {number}
+         */
+        getOrbitalPeriodByCartesian3(cartesian3: [number,number,number]=[0,0,0]):  number;
     }
     const jspredict_dc: JSPredictDC;
     export default jspredict_dc;
