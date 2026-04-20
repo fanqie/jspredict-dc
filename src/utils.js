@@ -136,6 +136,15 @@ function normalizeObserverLocation(observerLocation) {
   throw new Error('Unsupported observer location format');
 }
 
+// 需要地面观测几何的 API 必须显式提供观测者位置，避免后续循环里出现隐式 NaN 故障。
+function requireObserverLocation(observerLocation, apiName) {
+  const normalized = normalizeObserverLocation(observerLocation);
+  if (!normalized) {
+    throw new Error(`${apiName} requires observerLocation`);
+  }
+  return normalized;
+}
+
 // 对经度做 -180 到 180 的闭环处理，避免跨日界线时出现不连续跳变。
 function clamp(value, min, max) {
   return Math.min(max, Math.max(min, value));
@@ -839,7 +848,8 @@ function adaptiveStep(eci1, eci2, isVisible, defaultStep) {
   }
 
   const minStep = 1;
-  const adaptiveStepValue = Math.max(minStep, Math.min(defaultStep, 1000 * dist / relSpeed));
+  // dist / relSpeed 已经是秒，不能再乘 1000。
+  const adaptiveStepValue = Math.max(minStep, Math.min(defaultStep, dist / relSpeed));
   return isVisible ? defaultStep : Math.min(defaultStep, adaptiveStepValue / 2);
 }
 
@@ -915,10 +925,15 @@ function findTransits(source, observerLocation, start, end, minElevation, maxTra
   const startDate = toDate(start);
   const endDate = toDate(end);
   const satrec = toSatrec(source);
-  const threshold = !minElevation ? 4 : minElevation;
-  const effectiveMaxTransits = !maxTransits ? require('./runtime').maxIterations : maxTransits;
+  const threshold = minElevation == null ? 4 : minElevation;
+  const effectiveMaxTransits = maxTransits == null ? require('./runtime').maxIterations : maxTransits;
+  const normalizedObserver = requireObserverLocation(observerLocation, 'findTransits');
 
-  if (badSat(satrec, normalizeObserverLocation(observerLocation), startDate.getTime())) {
+  if (!Number.isFinite(effectiveMaxTransits) || effectiveMaxTransits < 0) {
+    throw new Error('maxTransits must be a non-negative number');
+  }
+
+  if (badSat(satrec, normalizedObserver, startDate.getTime())) {
     return [];
   }
 
@@ -928,7 +943,7 @@ function findTransits(source, observerLocation, start, end, minElevation, maxTra
   const maxIterations = require('./runtime').maxIterations;
 
   while (iterations < maxIterations && transits.length < effectiveMaxTransits) {
-    const transit = quickPredict(satrec, normalizeObserverLocation(observerLocation), time, endDate.getTime());
+    const transit = quickPredict(satrec, normalizedObserver, time, endDate.getTime());
     if (!transit) {
       break;
     }
@@ -950,11 +965,12 @@ function transitSegment(source, observerLocation, start, end) {
   const startDate = toDate(start);
   const endDate = toDate(end);
   const satrec = toSatrec(source);
-  if (badSat(satrec, normalizeObserverLocation(observerLocation), startDate.getTime())) {
+  const normalizedObserver = requireObserverLocation(observerLocation, 'transitSegment');
+  if (badSat(satrec, normalizedObserver, startDate.getTime())) {
     return null;
   }
 
-  return quickPredict(satrec, normalizeObserverLocation(observerLocation), startDate.getTime(), endDate.getTime());
+  return quickPredict(satrec, normalizedObserver, startDate.getTime(), endDate.getTime());
 }
 
 // 计算观测者在整个时间段内的可见窗口，输出起止时间戳数组。
@@ -962,7 +978,7 @@ function visibilityWindows(source, observerLocation, start, end) {
   const startDate = toDate(start);
   const endDate = toDate(end);
   const satrec = toSatrec(source);
-  const normalizedObserver = normalizeObserverLocation(observerLocation);
+  const normalizedObserver = requireObserverLocation(observerLocation, 'visibilityWindows');
 
   if (isGeostationary(satrec) && aosHappens(satrec, normalizedObserver)) {
     return [[startDate.getTime(), endDate.getTime()]];
