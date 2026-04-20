@@ -7,7 +7,7 @@ import terser from '@rollup/plugin-terser';
 export default [
   // JS 构建
   {
-    input: 'jspredict-dc.js',
+    input: 'src/index.js',
     output: [
       {
         file: 'dist/jspredict-dc.esm.js',

@@ -1,198 +1,217 @@
 [English](README.md) | 中文
 
-# JSpredict-DC
+# jspredict-dc v3
 
-一个流行的 `predict` 卫星跟踪库的 JavaScript
-重构和增强版本，最初基于 [nsat/jspredict](https://github.com/nsat/jspredict)。
+`jspredict-dc` 是一个基于 [`satellite.js`](https://github.com/shashwatak/satellite-js) 重构的卫星轨道传播与可见性工具库。
 
-本分支旨在提供一个更现代化、更易于维护的代码库，具有更好的模块兼容性和 TypeScript 支持。
+v3 版本的核心目标有三个：
 
-### 主要改进：
+- 保留 2.0 版本的公开 API，并通过兼容别名继续可用
+- 统一轨道输入层，让 TLE、OMM XML、JSON GP 使用同一套入口
+- 直接依赖 `satellite.js` 作为核心轨道数学基础，不再维护独立传播内核
 
-* **代码重构：** 清理并现代化了内部代码库。
-* **模块兼容性：** 使用 Rollup 构建，支持包括 ESM、CJS、UMD 和 AMD 在内的多种模块格式。
-* **TypeScript 支持：** 包含 TypeScript 声明文件（`.d.ts`），为 TypeScript 项目提供更好的开发体验。
-* **单元测试：** 添加了使用 Jest 的单元测试，确保核心功能准确稳定。
-* **功能扩展：** 增加了更多的SDK。
+## 这个包能做什么
 
-### 依赖：
+- 按 UTC 时刻传播卫星位置
+- 按时间窗采样星历
+- 预测地面观测者的过境和可见窗口
+- 根据轨道源或笛卡尔半径估算轨道周期
+- 接受 TLE、OMM XML、JSON GP 或已构建好的 `satrec` 输入
+- 保留 2.0 名称，同时提供更清晰的 v3 新名称
 
-* [Satellite.js](https://github.com/shashwatak/satellite-js)
-* [Moment.js](https://github.com/moment/moment)
-
-## 安装
-
-通过 npm 安装库：
+## 快速上手
 
 ```bash
 npm install jspredict-dc
 ```
 
-## API
+```js
+const jspredict = require('jspredict-dc');
 
-| 方法                                                                                                                                                                           | 说明                                                              |
-|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------|
-| `jspredict_dc.getPositionByTime(tle: string, observerLocation?: ObserverLocation, time?: number \| Date): ObserveResult \| null`                                             | 计算卫星在特定时间的位置和其他观测数据，可选择观测者位置。                                   |
-| `jspredict_dc.getEphemeris(tle: string, observerLocation: ObserverLocation, start: number \| Date, end: number \| Date, interval?: any): ObserveResult[]`                    | 在指定的时间范围内，以指定的时间间隔计算一系列卫星观测数据。                                  |
-| `jspredict_dc.transits(tle: string, observerLocation: ObserverLocation, start: number \| Date, end: number \| Date, minElevation?: number, maxTransits?: number): Transit[]` | 在给定的观测者位置和时间窗口内，查找卫星可见过境（transits），可按最小仰角和最大过境数过滤。[不支持地球同步轨道卫星] |
-| `jspredict_dc.transitSegment(tle: string, observerLocation: ObserverLocation, start: number \| Date, end: number \| Date): Transit \| null`                                  | 计算特定时间段的过境信息。                                                   |
-| `jspredict_dc.getVisibilityWindows(tle: string, observerLocation: ObserverLocation, start: number \| Date, end: number \| Date): number[][]`                                 | 返回卫星在给定观测者位置和时间范围内的可见窗口时间戳数组（每个元素为[start, end]对）。               |
-| `getOrbitalPeriodByTle(tle: string):  number`                                                                                                                                | 根据tle  获取轨道周期(秒)。                                               |
-| `getOrbitalPeriodByCartesian3(cartesian3: [number,number,number]=[0,0,0]):  number;`                                                                                         | 根据笛卡尔坐标获取轨道周期(秒)。                                               |
+const tle = `STARLINK-1008
+1 44714U 19074B   26109.91670139  .01912102  00000+0  47462-1 0  9994
+2 44714  53.1550 346.4090 0001914  94.7468 310.9927 15.36899644  5865`;
 
-详细类型定义请参考 TypeScript 声明文件（`dist/jspredict-dc.d.ts`）。
+const observer = [39.9042, 116.4074, 0.05];
+const time = new Date('2026-04-20T08:27:14Z');
 
-**输入类型：**
-
-*   `tle`: 3 行字符串，使用 "\\n" 作为换行符。
-*   `observerLocation`: 3 元素数组 `[纬度 (度), 经度 (度), 海拔 (千米)]`。
-*   `time`, `start`, `end`: Unix 时间戳 (毫秒) 或 Date 对象 (`new Date()`)。
-*   `interval`:步长间隔（毫秒）。
-
-## 数据结构
-
-以下是库方法使用和返回的主要数据结构：
-
-### ObserverLocation
-
-表示地面观测站位置的数组：`[纬度 (度), 经度 (度), 海拔 (千米)]`。
-
-### Transit
-
-表示卫星从地面观测站可见过境的信息。
-
-* `start` (number): 过境开始时间 (毫秒 Unix 时间戳)。
-* `end` (number): 过境结束时间 (毫秒 Unix 时间戳)。
-* `maxElevation` (number): 过境期间的最大仰角 (度)。
-* `apexAzimuth` (number): 达到最大仰角时的方位角 (度)。
-* `maxAzimuth` (number): 过境期间的最大方位角 (度)。
-* `minAzimuth` (number): 过境期间的最小方位角 (度)。
-* `duration` (number): 过境持续时间 (毫秒)。
-
-### Eci
-
-表示地心惯性坐标系（位置和速度）。
-
-* `position` (object): 卫星在 ECI 坐标系中的位置 (千米)。
-    * `x` (number)
-    * `y` (number)
-    * `z` (number)
-* `velocity` (object): 卫星在 ECI 坐标系中的速度 (千米/秒)。
-    * `x` (number)
-    * `y` (number)
-    * `z` (number)
-
-### ObserveResult
-
-表示特定时间的卫星观测数据。包含基本的轨道数据，如果提供了 observerLocation，则可选地包含地面观测者数据。
-
-* `eci` (Eci): 卫星在 ECI 坐标系中的位置和速度。
-* `gmst` (number): 格林威治平均恒星时 (弧度)。
-* `latitude` (number): 卫星在地心大地坐标系中的纬度 (度)。
-* `longitude` (number): 卫星在地心大地坐标系中的经度 (度)。
-* `altitude` (number): 卫星在地心大地坐标系中的海拔高度 (千米)。
-* `footprint` (number): 卫星对地面可见的区域直径 (千米)。
-* `sunlit` (boolean): 卫星是否被太阳照亮（是否处于日照区）。
-* `eclipseDepth` (number): 卫星处于地球阴影中的深度 (弧度)。
-* `azimuth` (number | undefined): 从地面观测点到卫星的方位角 (度)。**仅在提供 observerLocation 时计算。**
-* `elevation` (number | undefined): 从地面观测点到卫星的仰角 (度)。**仅在提供 observerLocation 时计算。**
-* `rangeSat` (number | undefined): 从地面观测点到卫星的直线距离 (千米)。**仅在提供 observerLocation 时计算。**
-* `doppler` (number | undefined): 从地面观测点观察到的卫星的多普勒因子。**仅在提供 observerLocation 时计算。**
-
-## 使用示例
-
-使用 ESM (例如，现代构建工具)：
-
-```javascript
-import jspredict_dc, {ObserverLocation} from 'jspredict-dc'; // ObserverLocation 类型也已导出
-
-const tle = `STARLINK-1008\n1 44714C 19074B   25148.13868056  .00017318  00000+0  11598-2 0  1489\n2 44714  53.0556  28.5051 0001501  80.1165 230.1605 15.06396864    11`;
-const observerLocation: ObserverLocation = [39.9042, 116.4074, 0.05]; // 北京，海拔50米
-
-// 获取特定时间的位置
-const observationTime = new Date('2024-05-28T12:00:00Z');
-const position = jspredict_dc.getPositionByTime(tle, observerLocation, observationTime);
-console.log('位置:', position);
-
-// 获取时间范围内的星历
-const startTime = new Date('2024-05-28T12:00:00Z');
-const endTime = new Date('2024-05-28T12:10:00Z');
-const interval = {minutes: 2};
-const ephemeris = jspredict_dc.getEphemeris(tle, observerLocation, startTime, endTime, interval);
-console.log('星历:', ephemeris);
-
-// 查找可见过境
-const transitStartTime = new Date('2024-05-28T00:00:00Z');
-const transitEndTime = new Date('2024-05-29T00:00:00Z');
-const minElevation = 5; // 度
-const maxTransits = 2;
-const transits = jspredict_dc.transits(tle, observerLocation, transitStartTime, transitEndTime, minElevation, maxTransits);
-console.log('过境:', transits);
-
-// 获取轨道周期 提供了两种方法
-const res = jspredict.getOrbitalPeriodByTle(tle);
-const pos = jspredict.getPositionByTime(tle, observerLocation, new Date())
-const res2 = jspredict.getOrbitalPeriodByCartesian3([pos.eci.position.x, pos.eci.position.y, pos.eci.position.z])
-console.log(res, res2)
+const observation = jspredict.observeAt(tle, observer, time);
+const ephemeris = jspredict.ephemeris(tle, observer, time, new Date('2026-04-20T09:27:14Z'), { minutes: 5 });
+const transits = jspredict.findTransits(tle, observer, time, new Date('2026-04-21T08:27:14Z'));
 ```
 
-使用 CommonJS (例如，在 Node.js 中)：
+## Demo 和官网
 
-```javascript
-const jspredict_dc = require('jspredict-dc');
+- GitHub Pages 演示地址：`https://fanqie.github.io/jspredict-dc/`
+- 仓库根目录演示页：[`index.html`](./index.html)
 
-const tle = `STARLINK-1008\n1 44714C 19074B   25148.13868056  .00017318  00000+0  11598-2 0  1489\n2 44714  53.0556  28.5051 0001501  80.1165 230.1605 15.06396864    11`;
-const observerLocation = [39.9042, 116.4074, 0.05]; // 北京，海拔50米
+演示页基于 Cesium，用来做浏览器里的快速可视化验证，包含：
 
-// 获取特定时间的位置
-const observationTime = new Date('2024-05-28T12:00:00Z');
-const position = jspredict_dc.getPositionByTime(tle, observerLocation, observationTime);
-console.log('位置:', position);
+- 实时轨道渲染
+- 2D 星下点轨迹查看
+- UTC 时间轴拖动
+- 采样预览面板
+- 纯文本数据页，用于检查原始输出
 
-// 获取时间范围内的星历
-const startTime = new Date('2024-05-28T12:00:00Z');
-const endTime = new Date('2024-05-28T12:10:00Z');
-const interval = {minutes: 2};
-const ephemeris = jspredict_dc.getEphemeris(tle, observerLocation, startTime, endTime, interval);
-console.log('星历:', ephemeris);
+## v3 相对 2.0 的变化
 
-// 查找可见过境
-const transitStartTime = new Date('2024-05-28T00:00:00Z');
-const transitEndTime = new Date('2024-05-29T00:00:00Z');
-const minElevation = 5; // 度
-const maxTransits = 2;
-const transits = jspredict_dc.transits(tle, observerLocation, transitStartTime, transitEndTime, minElevation, maxTransits);
-console.log('过境:', transits);
+### 改动重点
+
+- v3 基于 `satellite.js` 6.x
+- v3 不再把独立传播内核作为公共设计的一部分
+- v3 接受统一后的轨道源输入，而不是只接受一种固定格式
+- v3 使用原生 `Date`，不再依赖 moment 风格时间层
+- v3 保留 2.0 名称作为兼容别名，旧代码可以继续运行
+
+### API 迁移映射
+
+| 2.0 名称 | v3 名称 | 状态 |
+| --- | --- | --- |
+| `getPositionByTime` | `observeAt` | 保留别名 |
+| `getEphemeris` | `ephemeris` | 保留别名 |
+| `transits` | `findTransits` | 保留别名 |
+| `getTransitSegment` | `transitSegment` | 保留别名 |
+| `getVisibilityWindows` | `visibilityWindows` | 保留别名 |
+| `getSatelliteVisibilityWindows` | `satelliteVisibilityWindows` | 保留别名 |
+| `getOrbitalPeriodByTle` | `orbitalPeriodFromOrbitSource` | 保留别名 |
+| `getOrbitalPeriodByCartesian3` | `orbitalPeriodFromCartesian3` | 保留别名 |
+| `setDebugIntervalLogging` | `printIntervalInfo` | 保留别名 |
+| `setIterationLimit` | `setMax` | 保留别名 |
+
+## 支持的轨道输入
+
+`jspredict-dc` 支持以下输入：
+
+- TLE 字符串
+- OMM XML 字符串
+- JSON GP 对象或 JSON 字符串
+- 已经构建好的 `satrec` 对象
+
+推荐使用的 v3 新入口：
+
+- `normalizeOrbitSource(source)`
+- `fromTle(line1, line2)`
+- `fromJsonGp(record)`
+- `fromOmmXml(xml)`
+
+## 主要 API
+
+### 观测
+
+- `observeAt(source, observerLocation?, time?)`
+- `getPositionByTime(...)` 旧名兼容别名
+
+返回某个 UTC 时刻的单次观测结果。传入观测者位置后，还会附带方位角、仰角、斜距和多普勒相关信息。
+
+### 星历
+
+- `ephemeris(source, observerLocation, start, end, interval?)`
+- `getEphemeris(...)` 旧名兼容别名
+
+在时间窗内按固定步长采样，返回一组观测结果。
+
+### 过境预测
+
+- `findTransits(source, observerLocation, start, end, minElevation?, maxTransits?)`
+- `transits(...)` 旧名兼容别名
+- `transitSegment(source, observerLocation, start, end)`
+- `getTransitSegment(...)` 旧名兼容别名
+
+用于搜索地面观测者的可见过境窗口。
+
+### 可见窗口
+
+- `visibilityWindows(source, observerLocation, start, end)`
+- `getVisibilityWindows(...)` 旧名兼容别名
+- `satelliteVisibilityWindows(source1, source2, start, end, stepSeconds?)`
+- `getSatelliteVisibilityWindows(...)` 旧名兼容别名
+
+前者计算地面观测窗口，后者计算两颗卫星之间的互见窗口。
+
+### 轨道周期
+
+- `orbitalPeriodFromOrbitSource(source)`
+- `orbitalPeriodFromTle(...)` 旧名兼容别名
+- `orbitalPeriodFromCartesian3([x, y, z])`
+- `getOrbitalPeriodByTle(...)` 旧名兼容别名
+- `getOrbitalPeriodByCartesian3(...)` 旧名兼容别名
+
+根据轨道源或笛卡尔半径估算轨道周期。
+
+### 运行时配置
+
+- `setIterationLimit(max)`
+- `setMax(max)` 旧名兼容别名
+- `printIntervalInfo(open)`
+- `setDebugIntervalLogging(open)` 旧名兼容别名
+
+用于控制搜索算法的最大迭代次数和调试日志输出。
+
+## 全部导出 API
+
+| API | 说明 |
+| --- | --- |
+| `normalizeOrbitSource(source)` | 将任意支持的轨道输入归一化为标准内部结构。 |
+| `fromTle(line1, line2)` | 从 TLE 两行文本构建标准轨道源。 |
+| `fromJsonGp(record)` | 从 JSON GP 对象构建标准轨道源。 |
+| `fromOmmXml(xml)` | 从 OMM XML 构建标准轨道源。 |
+| `observeAt(source, observerLocation?, time?)` | 计算单个时刻的卫星观测结果。 |
+| `getPositionByTime(...)` | `observeAt` 的 2.0 兼容别名。 |
+| `ephemeris(source, observerLocation, start, end, interval?)` | 按时间步长采样星历。 |
+| `getEphemeris(...)` | `ephemeris` 的 2.0 兼容别名。 |
+| `findTransits(...)` | 搜索可见过境窗口。 |
+| `transits(...)` | `findTransits` 的 2.0 兼容别名。 |
+| `transitSegment(...)` | 搜索单个过境窗口。 |
+| `getTransitSegment(...)` | `transitSegment` 的 2.0 兼容别名。 |
+| `visibilityWindows(...)` | 返回地面观测窗口，格式为 `[startMs, endMs]`。 |
+| `getVisibilityWindows(...)` | `visibilityWindows` 的 2.0 兼容别名。 |
+| `satelliteVisibilityWindows(...)` | 返回两颗卫星之间的互见窗口。 |
+| `getSatelliteVisibilityWindows(...)` | `satelliteVisibilityWindows` 的 2.0 兼容别名。 |
+| `orbitalPeriodFromOrbitSource(source)` | 从轨道源估算轨道周期。 |
+| `orbitalPeriodFromTle(...)` | `orbitalPeriodFromOrbitSource` 的 2.0 兼容别名。 |
+| `orbitalPeriodFromCartesian3([x, y, z])` | 从笛卡尔半径估算轨道周期。 |
+| `getOrbitalPeriodByTle(...)` | `orbitalPeriodFromOrbitSource` 的 2.0 兼容别名。 |
+| `getOrbitalPeriodByCartesian3(...)` | `orbitalPeriodFromCartesian3` 的 2.0 兼容别名。 |
+| `setIterationLimit(max)` | 设置搜索算法允许的最大迭代次数。 |
+| `setMax(max)` | `setIterationLimit` 的 2.0 兼容别名。 |
+| `printIntervalInfo(open)` | 开关调试日志输出。 |
+| `setDebugIntervalLogging(open)` | `printIntervalInfo` 的 2.0 兼容别名。 |
+
+## 示例
+
+```js
+const jspredict = require('jspredict-dc');
+
+const tle = `STARLINK-1008
+1 44714U 19074B   26109.91670139  .01912102  00000+0  47462-1 0  9994
+2 44714  53.1550 346.4090 0001914  94.7468 310.9927 15.36899644  5865`;
+
+const observer = [39.9042, 116.4074, 0.05];
+const start = new Date('2026-04-20T08:00:00Z');
+const end = new Date('2026-04-20T09:00:00Z');
+
+const current = jspredict.observeAt(tle, observer, new Date('2026-04-20T08:27:14Z'));
+const samples = jspredict.ephemeris(tle, observer, start, end, { minutes: 5 });
+const passes = jspredict.findTransits(tle, observer, start, end, 0, 5);
+const windows = jspredict.visibilityWindows(tle, observer, start, end);
 ```
 
-使用 script 标签 (UMD 格式)：
+## 依赖说明
 
-```html
+### 运行时依赖
 
-<script src="path/to/your/dist/jspredict-dc.umd.js"></script>
-<script>
-    const tle = `STARLINK-1008\n1 44714C 19074B   25148.13868056  .00017318  00000+0  11598-2 0  1489\n2 44714  53.0556  28.5051 0001501  80.1165 230.1605 15.06396864    11`;
-    const observerLocation = [39.9042, 116.4074, 0.05]; // 北京，海拔50米
-    const observationTime = new Date('2024-05-28T12:00:00Z');
+- [`satellite.js`](https://github.com/shashwatak/satellite-js) `^6.0.1`
 
-    // 库通过全局变量 jspredict_dc 可用
-    const position = jspredict_dc.getPositionByTime(tle, observerLocation, observationTime);
-    console.log('位置:', position);
-</script>
-```
+### 开发依赖
 
-## 构建
+- Rollup
+- Jest
+- CommonJS / JSON / Node resolve / 压缩等 Rollup 插件
 
-构建库并生成 `dist` 文件：
+### Demo 依赖
 
-```bash
-npm run build
-```
+仓库根目录的演示页在浏览器里使用 Cesium，但 Cesium 不是这个包的运行时 npm 依赖。
 
-## 测试
+## 协议
 
-运行单元测试：
-
-```bash
-npm test
-``` 
+MIT

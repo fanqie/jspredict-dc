@@ -1,205 +1,217 @@
 [中文](README.zh-CN.md) | English
 
-# JSpredict-DC
+# jspredict-dc v3
 
-A refactored and enhanced Javascript port of the popular `predict` satellite tracking library, originally based
-on [nsat/jspredict](https://github.com/nsat/jspredict).
+`jspredict-dc` is a satellite propagation and visibility utility library rebuilt on top of [`satellite.js`](https://github.com/shashwatak/satellite-js).
 
-This fork aims to provide a more modern and maintainable codebase with better module compatibility and TypeScript
-support.
+The v3 redesign focuses on three things:
 
-### Key Improvements:
+- keep the 2.0 public API available through compatibility aliases
+- normalize orbit inputs so TLE, OMM XML, and JSON GP all share one entry path
+- lean on `satellite.js` for the core orbital math instead of maintaining a separate propagation engine
 
-* **Code Refactoring:** Cleaned up and modernized the internal codebase.
-* **Module Compatibility:** Built with Rollup to support various module formats including ESM, CJS, UMD, and AMD.
-* **TypeScript Support:** Includes TypeScript declaration files (`.d.ts`) for better developer experience in TypeScript
-  projects.
-* **Unit Tests:** Added unit tests using Jest to ensure core functionality remains accurate and stable.
-* **Function extension:**  Added more SDKs.
+## What this package does
 
-### Depends on:
+- propagate a satellite to any UTC time
+- sample ephemeris over a time window
+- predict transits and visibility windows for a ground observer
+- estimate orbital period from an orbit source or a Cartesian radius
+- accept TLE, OMM XML, JSON GP, or already-parsed `satrec`-like input
+- preserve 2.0 names while offering clearer v3 method names
 
-* [Satellite.js](https://github.com/shashwatak/satellite-js)
-* [Moment.js](https://github.com/moment/moment)
-
-## Installation
-
-Install the library via npm:
+## Quick Start
 
 ```bash
 npm install jspredict-dc
 ```
 
-## API
+```js
+const jspredict = require('jspredict-dc');
 
-| Method                                                                                                                                                                       | Description                                                                                                                                                                                  |
-|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `jspredict_dc.getPositionByTime(tle: string, observerLocation?: ObserverLocation, time?: number \| Date): ObserveResult \| null`                                             | Calculates the satellite's position and other observation data for a specific time and optional observer location.                                                                           |
-| `jspredict_dc.getEphemeris(tle: string, observerLocation: ObserverLocation, start: number \| Date, end: number \| Date, interval?: any): ObserveResult[]`                    | Calculates a series of satellite observations over a time range with a specified interval.                                                                                                   |
-| `jspredict_dc.transits(tle: string, observerLocation: ObserverLocation, start: number \| Date, end: number \| Date, minElevation?: number, maxTransits?: number): Transit[]` | Finds satellite passes (transits) over a given observer location within a time window, filtered by minimum elevation and maximum number of transits. [Not supporting geostationary orbit satellites] |
-| `jspredict_dc.transitSegment(tle: string, observerLocation: ObserverLocation, start: number \| Date, end: number \| Date): Transit \| null`                                  | Calculates the transit information for a specific time segment.                                                                                                                              |
-| `jspredict_dc.getVisibilityWindows(tle: string, observerLocation: ObserverLocation, start: number \| Date, end: number \| Date): number[][]`                                 | Returns an array of visible window time ranges (as [start, end] timestamp pairs) for the satellite over the observer location in the given time range.                                       |
-| `getOrbitalPeriodByTle(tle: string):  number`                                                                                                                                | Get Orbital Period by TLE.    (second)                                                                                                                                                                |
-| `getOrbitalPeriodByCartesian3(cartesian3: [number,number,number]=[0,0,0]):  number;`                                                                                         | Get Orbital Period by Cartesian3. (second)                                                                                                                                                       |
+const tle = `STARLINK-1008
+1 44714U 19074B   26109.91670139  .01912102  00000+0  47462-1 0  9994
+2 44714  53.1550 346.4090 0001914  94.7468 310.9927 15.36899644  5865`;
 
-See the TypeScript declaration file (`dist/jspredict-dc.d.ts`) for detailed type definitions.
+const observer = [39.9042, 116.4074, 0.05];
+const time = new Date('2026-04-20T08:27:14Z');
 
-**Input Types:**
-
-* `tle`: 3 line string with "\n" character line breaks.
-* `observerLocation`: 3 element array `[latitude (degrees), longitude (degrees), altitude (km)]`.
-* `time`, `start`, `end`: Unix timestamp (ms) or Date object (`new Date()`).
-* `interval`: step interval in milliseconds.
-
-## Data Structures
-
-Here are the main data structures used and returned by the library methods:
-
-### ObserverLocation
-
-An array representing a ground station's location: `[latitude (degrees), longitude (degrees), altitude (km)]`.
-
-### Transit
-
-Represents information about a satellite's visible pass over a ground station.
-
-* `start` (number): Transit start time in milliseconds Unix timestamp.
-* `end` (number): Transit end time in milliseconds Unix timestamp.
-* `maxElevation` (number): Maximum elevation during the transit in degrees.
-* `apexAzimuth` (number): Azimuth at the time of maximum elevation in degrees.
-* `maxAzimuth` (number): Maximum azimuth during the transit in degrees.
-* `minAzimuth` (number): Minimum azimuth during the transit in degrees.
-* `duration` (number): Transit duration in milliseconds.
-
-### Eci
-
-Represents Earth-Centered Inertial coordinates (position and velocity).
-
-* `position` (object): Satellite's position in ECI coordinates (km).
-    * `x` (number)
-    * `y` (number)
-    * `z` (number)
-* `velocity` (object): Satellite's velocity in ECI coordinates (km/s).
-    * `x` (number)
-    * `y` (number)
-    * `z` (number)
-
-### ObserveResult
-
-Represents the satellite observation data for a specific time. Includes basic orbital data and optionally ground
-observer data if a observerLocation is provided.
-
-* `eci` (Eci): Satellite's position and velocity in ECI coordinates.
-* `gmst` (number): Greenwich Mean Sidereal Time in radians.
-* `latitude` (number): Satellite's latitude in Geodetic coordinates (degrees).
-* `longitude` (number): Satellite's longitude in Geodetic coordinates (degrees).
-* `altitude` (number): Satellite's altitude in Geodetic coordinates (km).
-* `footprint` (number): Diameter of the area on the ground visible from the satellite (km).
-* `sunlit` (boolean): Whether the satellite is illuminated by the sun.
-* `eclipseDepth` (number): Depth of the satellite within the Earth's shadow (radians).
-* `azimuth` (number | undefined): Azimuth from the ground observer to the satellite (degrees). **Calculated only if
-  observerLocation is provided.**
-* `elevation` (number | undefined): Elevation from the ground observer to the satellite (degrees). **Calculated only if
-  observerLocation is provided.**
-* `rangeSat` (number | undefined): Slant range from the ground observer to the satellite (km). **Calculated only if
-  observerLocation is provided.**
-* `doppler` (number | undefined): Doppler factor of the satellite as observed from the ground observer. **Calculated
-  only if observerLocation is provided.**
-
-## Usage Examples
-
-Using ESM (e.g., with modern build tools):
-
-```javascript
-import jspredict_dc, {ObserverLocation} from 'jspredict-dc'; // ObserverLocation type is also exported
-
-const tle = `STARLINK-1008\n1 44714C 19074B   25148.13868056  .00017318  00000+0  11598-2 0  1489\n2 44714  53.0556  28.5051 0001501  80.1165 230.1605 15.06396864    11`;
-const observerLocation: ObserverLocation = [39.9042, 116.4074, 0.05]; // Beijing, 50m altitude
-
-// Get position at a specific time
-const observationTime = new Date('2024-05-28T12:00:00Z');
-const position = jspredict_dc.getPositionByTime(tle, observerLocation, observationTime);
-console.log('Position:', position);
-
-// Get ephemeris over a time range
-const startTime = new Date('2024-05-28T12:00:00Z');
-const endTime = new Date('2024-05-28T12:10:00Z');
-const interval = {minutes: 2};
-const ephemeris = jspredict_dc.getEphemeris(tle, observerLocation, startTime, endTime, interval);
-console.log('Ephemeris:', ephemeris);
-
-// Find visible transits
-const transitStartTime = new Date('2024-05-28T00:00:00Z');
-const transitEndTime = new Date('2024-05-29T00:00:00Z');
-const minElevation = 5; // degrees
-const maxTransits = 2;
-const transits = jspredict_dc.transits(tle, observerLocation, transitStartTime, transitEndTime, minElevation, maxTransits);
-console.log('Transits:', transits);
+const observation = jspredict.observeAt(tle, observer, time);
+const ephemeris = jspredict.ephemeris(tle, observer, time, new Date('2026-04-20T09:27:14Z'), { minutes: 5 });
+const transits = jspredict.findTransits(tle, observer, time, new Date('2026-04-21T08:27:14Z'));
 ```
 
-Using CommonJS (e.g., in Node.js):
+## Demo and homepage
 
-```javascript
-const jspredict_dc = require('jspredict-dc');
+- GitHub Pages demo: `https://fanqie.github.io/jspredict-dc/`
+- Repository demo file: [`index.html`](./index.html)
 
-const tle = `STARLINK-1008\n1 44714C 19074B   25148.13868056  .00017318  00000+0  11598-2 0  1489\n2 44714  53.0556  28.5051 0001501  80.1165 230.1605 15.06396864    11`;
-const observerLocation = [39.9042, 116.4074, 0.05]; // Beijing, 50m altitude
+The demo is a Cesium-based verification page. It includes:
 
-// Get position at a specific time
-const observationTime = new Date('2024-05-28T12:00:00Z');
-const position = jspredict_dc.getPositionByTime(tle, observerLocation, observationTime);
-console.log('Position:', position);
+- live orbit rendering
+- 2D ground-track inspection
+- UTC time axis scrubber
+- sample preview panel
+- plain-text data view for raw output inspection
 
-// Get ephemeris over a time range
-const startTime = new Date('2024-05-28T12:00:00Z');
-const endTime = new Date('2024-05-28T12:10:00Z');
-const interval = {minutes: 2};
-const ephemeris = jspredict_dc.getEphemeris(tle, observerLocation, startTime, endTime, interval);
-console.log('Ephemeris:', ephemeris);
+## v3 vs 2.0
 
-// Find visible transits
-const transitStartTime = new Date('2024-05-28T00:00:00Z');
-const transitEndTime = new Date('2024-05-29T00:00:00Z');
-const minElevation = 5; // degrees
-const maxTransits = 2;
-const transits = jspredict_dc.transits(tle, observerLocation, transitStartTime, transitEndTime, minElevation, maxTransits);
-console.log('Transits:', transits);
+### What changed
 
-// getOrbitalPeriod
-const res = jspredict.getOrbitalPeriodByTle(tle);
-const pos =jspredict.getPositionByTime(tle, observerLocation, new Date())
-const res2=jspredict.getOrbitalPeriodByCartesian3([pos.eci.position.x,  pos.eci.position.y, pos.eci.position.z])
-console.log(res,res2)
+- v3 is centered on `satellite.js` 6.x
+- v3 removes the separate propagation engine from the public design
+- v3 accepts normalized orbit sources instead of requiring one rigid input shape
+- v3 uses native `Date` handling instead of a moment-based time layer
+- v3 keeps 2.0 names as compatibility aliases so older code can keep working
+
+### API migration map
+
+| 2.0 name | v3 name | Status |
+| --- | --- | --- |
+| `getPositionByTime` | `observeAt` | kept as alias |
+| `getEphemeris` | `ephemeris` | kept as alias |
+| `transits` | `findTransits` | kept as alias |
+| `getTransitSegment` | `transitSegment` | kept as alias |
+| `getVisibilityWindows` | `visibilityWindows` | kept as alias |
+| `getSatelliteVisibilityWindows` | `satelliteVisibilityWindows` | kept as alias |
+| `getOrbitalPeriodByTle` | `orbitalPeriodFromOrbitSource` | kept as alias |
+| `getOrbitalPeriodByCartesian3` | `orbitalPeriodFromCartesian3` | kept as alias |
+| `setDebugIntervalLogging` | `printIntervalInfo` | kept as alias |
+| `setIterationLimit` | `setMax` | kept as alias |
+
+## Supported orbit inputs
+
+`jspredict-dc` accepts:
+
+- TLE strings
+- OMM XML strings
+- JSON GP objects or JSON strings
+- prebuilt `satrec` objects
+
+Recommended v3 helpers:
+
+- `normalizeOrbitSource(source)`
+- `fromTle(line1, line2)`
+- `fromJsonGp(record)`
+- `fromOmmXml(xml)`
+
+## Main API
+
+### Observation
+
+- `observeAt(source, observerLocation?, time?)`
+- `getPositionByTime(...)` legacy alias
+
+Returns a single observation result at one UTC instant. When an observer location is provided, the result also includes azimuth, elevation, range, and doppler.
+
+### Ephemeris
+
+- `ephemeris(source, observerLocation, start, end, interval?)`
+- `getEphemeris(...)` legacy alias
+
+Generates repeated observations across a time window.
+
+### Transit prediction
+
+- `findTransits(source, observerLocation, start, end, minElevation?, maxTransits?)`
+- `transits(...)` legacy alias
+- `transitSegment(source, observerLocation, start, end)`
+- `getTransitSegment(...)` legacy alias
+
+Finds visible passes for a ground observer.
+
+### Visibility windows
+
+- `visibilityWindows(source, observerLocation, start, end)`
+- `getVisibilityWindows(...)` legacy alias
+- `satelliteVisibilityWindows(source1, source2, start, end, stepSeconds?)`
+- `getSatelliteVisibilityWindows(...)` legacy alias
+
+Computes when a satellite is visible to an observer, or when two satellites can see each other.
+
+### Orbital period
+
+- `orbitalPeriodFromOrbitSource(source)`
+- `orbitalPeriodFromTle(...)` legacy alias
+- `orbitalPeriodFromCartesian3([x, y, z])`
+- `getOrbitalPeriodByTle(...)` legacy alias
+- `getOrbitalPeriodByCartesian3(...)` legacy alias
+
+Estimates orbital period from the input orbit or from a Cartesian radius.
+
+### Runtime config
+
+- `setIterationLimit(max)`
+- `setMax(max)` legacy alias
+- `printIntervalInfo(open)`
+- `setDebugIntervalLogging(open)` legacy alias
+
+These functions control the iterative search behavior and the optional debug logging.
+
+## All exported APIs
+
+| API | Description |
+| --- | --- |
+| `normalizeOrbitSource(source)` | Normalize any supported orbit input into a standard internal source. |
+| `fromTle(line1, line2)` | Build a normalized source from a TLE pair. |
+| `fromJsonGp(record)` | Build a normalized source from a JSON GP object. |
+| `fromOmmXml(xml)` | Build a normalized source from OMM XML. |
+| `observeAt(source, observerLocation?, time?)` | Propagate once and return a single observation. |
+| `getPositionByTime(...)` | 2.0 compatibility alias of `observeAt`. |
+| `ephemeris(source, observerLocation, start, end, interval?)` | Sample observations across a time span. |
+| `getEphemeris(...)` | 2.0 compatibility alias of `ephemeris`. |
+| `findTransits(...)` | Search visible passes over a time span. |
+| `transits(...)` | 2.0 compatibility alias of `findTransits`. |
+| `transitSegment(...)` | Find a single pass segment within a window. |
+| `getTransitSegment(...)` | 2.0 compatibility alias of `transitSegment`. |
+| `visibilityWindows(...)` | Return observer visibility windows as `[startMs, endMs]` pairs. |
+| `getVisibilityWindows(...)` | 2.0 compatibility alias of `visibilityWindows`. |
+| `satelliteVisibilityWindows(...)` | Return mutual visibility windows between two satellites. |
+| `getSatelliteVisibilityWindows(...)` | 2.0 compatibility alias of `satelliteVisibilityWindows`. |
+| `orbitalPeriodFromOrbitSource(source)` | Estimate orbital period from any supported orbit source. |
+| `orbitalPeriodFromTle(...)` | 2.0 compatibility alias of `orbitalPeriodFromOrbitSource`. |
+| `orbitalPeriodFromCartesian3([x, y, z])` | Estimate orbital period from a radius vector. |
+| `getOrbitalPeriodByTle(...)` | 2.0 compatibility alias of `orbitalPeriodFromOrbitSource`. |
+| `getOrbitalPeriodByCartesian3(...)` | 2.0 compatibility alias of `orbitalPeriodFromCartesian3`. |
+| `setIterationLimit(max)` | Set the maximum number of iterations used by search routines. |
+| `setMax(max)` | 2.0 compatibility alias of `setIterationLimit`. |
+| `printIntervalInfo(open)` | Enable or disable interval logging. |
+| `setDebugIntervalLogging(open)` | 2.0 compatibility alias of `printIntervalInfo`. |
+
+## Example
+
+```js
+const jspredict = require('jspredict-dc');
+
+const tle = `STARLINK-1008
+1 44714U 19074B   26109.91670139  .01912102  00000+0  47462-1 0  9994
+2 44714  53.1550 346.4090 0001914  94.7468 310.9927 15.36899644  5865`;
+
+const observer = [39.9042, 116.4074, 0.05];
+const start = new Date('2026-04-20T08:00:00Z');
+const end = new Date('2026-04-20T09:00:00Z');
+
+const current = jspredict.observeAt(tle, observer, new Date('2026-04-20T08:27:14Z'));
+const samples = jspredict.ephemeris(tle, observer, start, end, { minutes: 5 });
+const passes = jspredict.findTransits(tle, observer, start, end, 0, 5);
+const windows = jspredict.visibilityWindows(tle, observer, start, end);
 ```
 
-Using a script tag (UMD format):
+## Dependencies
 
-```html
+### Runtime
 
-<script src="path/to/your/dist/jspredict-dc.umd.js"></script>
-<script>
-    const tle = `STARLINK-1008\n1 44714C 19074B   25148.13868056  .00017318  00000+0  11598-2 0  1489\n2 44714  53.0556  28.5051 0001501  80.1165 230.1605 15.06396864    11`;
-    const observerLocation = [39.9042, 116.4074, 0.05]; // Beijing, 50m altitude
-    const observationTime = new Date('2024-05-28T12:00:00Z');
+- [`satellite.js`](https://github.com/shashwatak/satellite-js) `^6.0.1`
 
-    // The library is available globally as jspredict_dc
-    const position = jspredict_dc.getPositionByTime(tle, observerLocation, observationTime);
-    console.log('Position:', position);
-</script>
-```
+### Development
 
-## Building
+- Rollup
+- Jest
+- Rollup plugins for CommonJS, JSON, node resolution, and minification
 
-To build the library and generate the `dist` files:
+### Demo-only
 
-```bash
-npm run build
-```
+The repository root demo page uses Cesium in the browser, but Cesium is not a package runtime dependency.
 
-## Testing
+## License
 
-To run the unit tests:
-
-```bash
-npm test
-```
+MIT
