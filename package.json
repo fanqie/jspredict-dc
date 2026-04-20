@@ -1,7 +1,7 @@
 {
   "name": "jspredict-dc",
-  "version": "2.1.2",
-  "description": "javascript port of predict open-source satellite tracking library",
+  "version": "3.0.0",
+  "description": "Satellite propagation and visibility utilities built on satellite.js",
   "main": "dist/jspredict-dc.cjs.js",
   "module": "dist/jspredict-dc.esm.js",
   "repository": {
@@ -39,10 +39,9 @@
   "bugs": {
     "url": "https://github.com/fanqie/jspredict-dc/issues"
   },
-  "homepage": "https://github.com/fanqie/jspredict-dc",
+  "homepage": "https://fanqie.github.io/jspredict-dc/",
   "dependencies": {
-    "moment": "^2.24.0",
-    "satellite.js": "^3.0.1"
+    "satellite.js": "^6.0.1"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^28.0.3",
@@ -56,6 +55,7 @@
   },
   "scripts": {
     "build": "rollup -c",
+    "docs-build": "npm run build",
     "test": "jest"
   }
 }

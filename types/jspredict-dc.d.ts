@@ -1,219 +1,177 @@
 declare module 'jspredict-dc' {
-    /**
-     * 地面观测站位置 (Ground Station Location).
-     * 数组格式: [纬度 (度), 经度 (度), 海拔 (千米)].
-     * Array format: [latitude (degrees), longitude (degrees), altitude (km)].
-     */
-    export type ObserverLocation = [number, number, number];
-
-    /**
-     * 卫星可见过境信息 (Satellite Visible Transit Information).
-     */
-    export interface Transit {
-      /**
-       * 过境开始时间 (毫秒 Unix 时间戳) (Transit start time in milliseconds Unix timestamp).
-       */
-      start: number;
-      /**
-       * 过境结束时间 (毫秒 Unix 时间戳) (Transit end time in milliseconds Unix timestamp).
-       */
-      end: number;
-      /**
-       * 过境期间的最大仰角 (度) (Maximum elevation during the transit in degrees).
-       */
-      maxElevation: number;
-      /**
-       * 达到最大仰角时的方位角 (度) (Azimuth at the time of maximum elevation in degrees).
-       */
-      apexAzimuth: number;
-      /**
-       * 过境期间的最大方位角 (度) (Maximum azimuth during the transit in degrees).
-       */
-      maxAzimuth: number;
-      /**
-       * 过境期间的最小方位角 (度) (Minimum azimuth during the transit in degrees).
-       */
-      minAzimuth: number;
-      /**
-       * 过境持续时间 (毫秒) (Transit duration in milliseconds).
-       */
-      duration: number;
-    }
-
-    /**
-     * 地心惯性坐标系 (Earth-Centered Inertial - ECI).
-     * 描述物体相对于地球中心的惯性坐标。
-     * Describes an object's position and velocity relative to the Earth's center in an inertial frame.
-     */
-    export interface Eci {
-        /**
-         * 卫星在 ECI 坐标系中的位置 (千米) (Satellite's position in ECI coordinates (km)).
-         */
-        position :{x:number,y:number,z:number}
-        /**
-         * 卫星在 ECI 坐标系中的速度 (千米/秒) (Satellite's velocity in ECI coordinates (km/s)).
-         */
-        velocity :{x:number,y:number,z:number}
-    }
-    /**
-     * 卫星观测结果 (Satellite Observation Result).
-     * 包含卫星的各种计算属性，可选地包含从地面观测点看到的数据。
-     * Contains various calculated properties of the satellite, optionally including data from a ground observer.
-     */
-    export interface ObserveResult {
-      /**
-       * 卫星在 ECI 坐标系中的位置和速度 (Satellite's position and velocity in ECI coordinates).
-       */
-      eci: Eci;
-      /**
-       * 格林威治平均恒星时 (弧度) (Greenwich Mean Sidereal Time in radians).
-       */
-      gmst: number;
-      /**
-       * 卫星在地心大地坐标系中的纬度 (度) (Satellite's latitude in Geodetic coordinates (degrees)).
-       */
-      latitude: number;
-      /**
-       * 卫星在地心大地坐标系中的经度 (度) (Satellite's longitude in Geodetic coordinates (degrees)).
-       */
-      longitude: number;
-      /**
-       * 卫星在地心大地坐标系中的海拔高度 (千米) (Satellite's altitude in Geodetic coordinates (km)).
-       */
-      altitude: number;
-      /**
-       * 卫星对地面可见的区域直径 (千米) (Diameter of the area on the ground visible from the satellite (km)).
-       */
-      footprint: number;
-      /**
-       * 卫星是否被太阳照亮 (是否处于日照区) (Whether the satellite is illuminated by the sun).
-       */
-      sunlit: boolean;
-      /**
-       * 卫星处于地球阴影中的深度 (弧度) (Depth of the satellite within the Earth's shadow (radians)).
-       */
-      eclipseDepth: number;
-      /**
-       * 从地面观测点到卫星的方位角 (度). 仅在提供 observerLocation 时计算. (Azimuth from the ground observer to the satellite (degrees). Calculated only if observerLocation is provided).
-       */
-      azimuth?: number;
-      /**
-       * 从地面观测点到卫星的仰角 (度). 仅在提供 observerLocation 时计算. (Elevation from the ground observer to the satellite (degrees). Calculated only if observerLocation is provided).
-       */
-      elevation?: number;
-      /**
-       * 从地面观测点到卫星的直线距离 (千米). 仅在提供 observerLocation 时计算. (Slant range from the ground observer to the satellite (km). Calculated only if observerLocation is provided).
-       */
-      rangeSat?: number;
-      /**
-       * 从地面观测点观察到的卫星的多普勒因子. 仅在提供 observerLocation 时计算. (Doppler factor of the satellite as observed from the ground observer. Calculated only if observerLocation is provided).
-       */
-      doppler?: number;
-    }
-
-    /**
-     * JSpredict-DC 库的核心接口 (Core interface for the JSpredict-DC library).
-     */
-    export interface JSPredictDC {
-      /**
-       * 开启或关闭观察时间间隔信息的控制台输出 (Enables or disables console output for observation intervals).
-       * @param open - 是否开启 (true) 或关闭 (false) (Whether to open (true) or close (false)).
-       */
-      printIntervalInfo(open: boolean): void;
-      /**
-       * 设置最大迭代次数 (Sets the maximum number of iterations for certain calculations).
-       * @param max - 最大迭代次数 (Maximum number of iterations).
-       */
-      setMax(max: number): void;
-      /**
-       * 计算卫星在特定时间的位置和观测数据 (Calculates the satellite's position and observation data at a specific time).
-       * @param tle - 卫星的两行轨道数据 (Satellite Two-Line Element set).
-       * @param observerLocation - 可选: 地面观测站位置 [纬度, 经度, 海拔] (千米) (Optional: Ground station location [latitude, longitude, altitude] (km)).
-       * @param start - 可选: 观测时间 (毫秒时间戳 或 Date 对象) (Optional: Observation time (milliseconds timestamp or Date object)).
-       * @returns 卫星观测结果或 null (Satellite observation result or null).
-       */
-      getPositionByTime(
-        tle: string,
-        observerLocation?: ObserverLocation,
-        start?: number | Date
-      ): ObserveResult | null;
-      /**
-       * 计算卫星在时间范围内的多个时刻的观测数据 (Calculates satellite observation data for multiple points over a time range).
-       * @param tle - 卫星的两行轨道数据 (Satellite Two-Line Element set).
-       * @param observerLocation - 地面观测站位置 [纬度, 经度, 海拔] (千米) (Ground station location [latitude, longitude, altitude] (km)).
-       * @param start - 开始时间 (毫秒时间戳 或 Date 对象) (Start time (milliseconds timestamp or Date object)).
-       * @param end - 结束时间 (毫秒时间戳 或 Date 对象) (End time for search (milliseconds timestamp or Date object)).
-       * @param interval - 可选: 时间间隔 (moment.js interval object) (Optional: Time interval (moment.js interval object)).
-       * @returns 卫星观测结果数组 (Array of satellite observation results).
-       */
-      getEphemeris(
-        tle: string,
-        observerLocation: ObserverLocation,
-        start: number | Date,
-        end: number | Date,
-        interval?: any
-      ): ObserveResult[];
-      /**
-       * 查找卫星在地面观测站的可见过境 (Finds visible satellite transits over a ground station).
-       * @param tle - 卫星的两行轨道数据 (Satellite Two-Line Element set).
-       * @param observerLocation - 地面观测站位置 [纬度, 经度, 海拔] (千米) (Ground station location [latitude, longitude, altitude] (km)).
-       * @param start - 开始搜索时间 (毫秒时间戳 或 Date 对象) (Start time for search (milliseconds timestamp or Date object)).
-       * @param end - 结束搜索时间 (毫秒时间戳 或 Date 对象) (End time for search (milliseconds timestamp or Date object)).
-       * @param minElevation - 可选: 最小可见仰角 (度), 默认为 4 度 (Optional: Minimum visible elevation (degrees), defaults to 4 degrees).
-       * @param maxTransits - 可选: 返回的最大过境数 (Optional: Maximum number of transits to return).
-       * @returns {Transit[]} 可见过境信息数组 (Array of visible transit information).
-       */
-      transits(
-        tle: string,
-        observerLocation: ObserverLocation,
-        start: number | Date,
-        end: number | Date,
-        minElevation?: number,
-        maxTransits?: number
-      ): Transit[];
-      /**
-       * 计算卫星在特定时间段的过境信息 (Calculates transit information for a specific time segment).
-       * @param tle - 卫星的两行轨道数据 (Satellite Two-Line Element set).
-       * @param observerLocation - 地面观测站位置 [纬度, 经度, 海拔] (千米) (Ground station location [latitude, longitude, altitude] (km)).
-       * @param start - 时间段开始时间 (毫秒时间戳 或 Date 对象) (Start time of the segment (milliseconds timestamp or Date object)).
-       * @param end - 时间段结束时间 (毫秒时间戳 或 Date 对象) (End time of the segment (milliseconds timestamp or Date object)).
-       * @returns {Transit | null} 过境信息或 null (Transit information or null).
-       */
-      transitSegment(
-        tle: string,
-        observerLocation: ObserverLocation,
-        start: number | Date,
-        end: number | Date
-      ): Transit | null;
-      /**
-       * 获取卫星在指定观测站和时间范围内的可见窗口时间戳数组（每个元素为[start, end]对）。
-       * Returns an array of visible window time ranges (as [start, end] timestamp pairs) for the satellite over the observer location in the given time range.
-       * @param tle - 卫星的两行轨道数据 (Satellite Two-Line Element set).
-       * @param observerLocation - 地面观测站位置 [纬度, 经度, 海拔] (千米) (Ground station location [latitude, longitude, altitude] (km)).
-       * @param start - 开始时间 (毫秒时间戳 或 Date 对象) (Start time (milliseconds timestamp or Date object)).
-       * @param end - 结束时间 (毫秒时间戳 或 Date 对象) (End time (milliseconds timestamp or Date object)).
-       * @returns {number[][]} 可见窗口时间戳数组 (Array of [start, end] timestamp pairs for visible windows).
-       */
-      getVisibilityWindows(
-        tle: string,
-        observerLocation: ObserverLocation,
-        start: number | Date,
-        end: number | Date
-      ): number[][];
-
-        /**
-         * 根据tle  获取轨道周期
-         * @param tle {string}
-         * @returns {number}
-         */
-        getOrbitalPeriodByTle(tle: string):  number;
-        /**
-         * 根据坐标  获取轨道周期
-         * @param cartesian3 {[number,number,number]}
-         * @returns {number}
-         */
-        getOrbitalPeriodByCartesian3(cartesian3: [number,number,number]=[0,0,0]):  number;
-    }
-    const jspredict_dc: JSPredictDC;
-    export default jspredict_dc;
+  /** 观察者位置，按 [纬度, 经度, 海拔公里] 顺序传入。 */
+  export type ObserverLocation = [number, number, number];
+  /** 支持对象式写法的观察者位置。 */
+  export interface ObserverLocationObject {
+    /** 纬度，单位为度。 */
+    latitude: number;
+    /** 经度，单位为度。 */
+    longitude: number;
+    /** 海拔高度，单位为公里。 */
+    altitude: number;
   }
+  /** 观察者位置的数组写法或对象写法。 */
+  export type ObserverLocationInput = ObserverLocation | ObserverLocationObject;
+
+  /** 单次过境窗口，包含起止时间、峰值仰角和方位角范围。 */
+  export interface Transit {
+    /** 过境开始时间戳，单位为毫秒。 */
+    start: number;
+    /** 过境结束时间戳，单位为毫秒。 */
+    end: number;
+    /** 峰值仰角，单位为度。 */
+    maxElevation: number;
+    /** 峰值仰角出现时的方位角，单位为度。 */
+    apexAzimuth: number;
+    /** 过境过程中的最大方位角，单位为度。 */
+    maxAzimuth: number;
+    /** 过境过程中的最小方位角，单位为度。 */
+    minAzimuth: number;
+    /** 过境持续时长，单位为毫秒。 */
+    duration: number;
+  }
+
+  /** 传播后的惯性系位置和速度。 */
+  export interface Eci {
+    /** 位置向量，单位为公里。 */
+    position: { x: number; y: number; z: number };
+    /** 速度向量，单位为公里/秒。 */
+    velocity: { x: number; y: number; z: number };
+  }
+
+  /** 单时刻观测结果，包含地理位置、日照状态和可选的地面观测量。 */
+  export interface ObserveResult {
+    eci: Eci;
+    /** 格林尼治平恒星时。 */
+    gmst: number;
+    /** 纬度，单位为度。 */
+    latitude: number;
+    /** 经度，单位为度。 */
+    longitude: number;
+    /** 海拔高度，单位为公里。 */
+    altitude: number;
+    /** 可见覆盖范围直径，单位为公里。 */
+    footprint: number;
+    /** 是否处于日照状态。 */
+    sunlit: boolean;
+    /** 处于地影时的阴影深度。 */
+    eclipseDepth: number;
+    /** 观测者坐标存在时的方位角，单位为度。 */
+    azimuth?: number;
+    /** 观测者坐标存在时的仰角，单位为度。 */
+    elevation?: number;
+    /** 观测者坐标存在时的斜距，单位为公里。 */
+    rangeSat?: number;
+    /** 观测者坐标存在时的多普勒因子。 */
+    doppler?: number;
+  }
+
+  /** OMM / JSON GP 的标准字段集合。 */
+  export interface OmmRecord {
+    OBJECT_NAME?: string;
+    OBJECT_ID?: string;
+    CENTER_NAME?: string;
+    REF_FRAME?: string;
+    TIME_SYSTEM?: string;
+    MEAN_MOTION?: string | number;
+    ECCENTRICITY?: string | number;
+    INCLINATION?: string | number;
+    RA_OF_ASC_NODE?: string | number;
+    ARG_OF_PERICENTER?: string | number;
+    MEAN_ANOMALY?: string | number;
+    EPHEMERIS_TYPE?: string | number;
+    CLASSIFICATION_TYPE?: string;
+    NORAD_CAT_ID?: string | number;
+    ELEMENT_SET_NO?: string | number;
+    REV_AT_EPOCH?: string | number;
+    BSTAR?: string | number;
+    MEAN_MOTION_DOT?: string | number;
+    MEAN_MOTION_DDOT?: string | number;
+    EPOCH?: string | Date;
+    [key: string]: unknown;
+  }
+
+  /** TLE 的两行文本结构。 */
+  export interface TleSource {
+    line1: string;
+    line2: string;
+  }
+
+  /** 归一化后的轨道源结构。 */
+  export interface OrbitSource {
+    kind: 'tle' | 'omm' | 'satrec';
+    tle?: TleSource;
+    omm?: OmmRecord;
+    satrec?: unknown;
+    source?: string;
+  }
+
+  /** 可传入库中的轨道源总输入。 */
+  export type OrbitSourceInput = string | TleSource | OmmRecord | OrbitSource | unknown;
+
+  /** jspredict-dc 对外暴露的完整 API。 */
+  export interface JSPredictDC {
+    /** 开关式调试日志输出。 */
+    printIntervalInfo(open: boolean): boolean;
+    /** 兼容旧名的调试开关。 */
+    setDebugIntervalLogging(open: boolean): boolean;
+    /** 设置最大迭代次数。 */
+    setMax(max?: number): number;
+    /** 兼容旧名的最大迭代次数设置。 */
+    setIterationLimit(max?: number): number;
+
+    /** 将任意轨道源归一化成内部标准结构。 */
+    normalizeOrbitSource(source: OrbitSourceInput): OrbitSource;
+    /** 从 TLE 文本构建轨道源。 */
+    fromTle(line1OrText: string, line2?: string): OrbitSource;
+    /** 从 JSON GP 记录构建轨道源。 */
+    fromJsonGp(record: OmmRecord): OrbitSource;
+    /** 从 OMM XML 构建轨道源。 */
+    fromOmmXml(xml: string): OrbitSource;
+
+    /** 计算给定时刻的观测结果。 */
+    observeAt(source: OrbitSourceInput, observerLocation?: ObserverLocationInput, start?: number | Date | string): ObserveResult | null;
+    /** 兼容旧名的单时刻观测接口。 */
+    getPositionByTime(source: OrbitSourceInput, observerLocation?: ObserverLocationInput, start?: number | Date | string): ObserveResult | null;
+
+    /** 在时间段内按固定步长采样星历。 */
+    ephemeris(source: OrbitSourceInput, observerLocation: ObserverLocationInput, start: number | Date | string, end: number | Date | string, interval?: number | string | { [unit: string]: number }): ObserveResult[];
+    /** 兼容旧名的星历采样接口。 */
+    getEphemeris(source: OrbitSourceInput, observerLocation: ObserverLocationInput, start: number | Date | string, end: number | Date | string, interval?: number | string | { [unit: string]: number }): ObserveResult[];
+
+    /** 搜索过境窗口。 */
+    findTransits(source: OrbitSourceInput, observerLocation: ObserverLocationInput, start: number | Date | string, end: number | Date | string, minElevation?: number, maxTransits?: number): Transit[];
+    /** 兼容旧名的过境搜索接口。 */
+    transits(source: OrbitSourceInput, observerLocation: ObserverLocationInput, start: number | Date | string, end: number | Date | string, minElevation?: number, maxTransits?: number): Transit[];
+
+    /** 返回单个过境窗口。 */
+    transitSegment(source: OrbitSourceInput, observerLocation: ObserverLocationInput, start: number | Date | string, end: number | Date | string): Transit | null;
+    /** 兼容旧名的单窗口过境搜索。 */
+    getTransitSegment(source: OrbitSourceInput, observerLocation: ObserverLocationInput, start: number | Date | string, end: number | Date | string): Transit | null;
+
+    /** 返回观测者可见窗口的起止时间数组。 */
+    visibilityWindows(source: OrbitSourceInput, observerLocation: ObserverLocationInput, start: number | Date | string, end: number | Date | string): number[][];
+    /** 兼容旧名的可见窗口接口。 */
+    getVisibilityWindows(source: OrbitSourceInput, observerLocation: ObserverLocationInput, start: number | Date | string, end: number | Date | string): number[][];
+
+    /** 计算两颗卫星之间的可见窗口。 */
+    satelliteVisibilityWindows(source1: OrbitSourceInput, source2: OrbitSourceInput, start: number | Date | string, end: number | Date | string, stepSeconds?: number): number[][];
+    /** 兼容旧名的卫星互见窗口接口。 */
+    getSatelliteVisibilityWindows(source1: OrbitSourceInput, source2: OrbitSourceInput, start: number | Date | string, end: number | Date | string, stepSeconds?: number): number[][];
+
+    /** 根据轨道源估算轨道周期。 */
+    orbitalPeriodFromOrbitSource(source: OrbitSourceInput): number;
+    /** 兼容旧名的轨道周期接口。 */
+    orbitalPeriodFromTle(source: OrbitSourceInput): number;
+    /** 兼容旧名的轨道周期接口。 */
+    getOrbitalPeriodByTle(source: OrbitSourceInput): number;
+
+    /** 根据笛卡尔坐标估算轨道周期。 */
+    orbitalPeriodFromCartesian3(cartesian3?: [number, number, number]): number;
+    /** 兼容旧名的笛卡尔周期接口。 */
+    getOrbitalPeriodByCartesian3(cartesian3?: [number, number, number]): number;
+  }
+
+  const jspredict_dc: JSPredictDC;
+  export default jspredict_dc;
+}

@@ -1,0 +1,1697 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>jspredict-dc v3 Cesium Demo</title>
+  <meta name="description" content="Satellite orbit visualization demo for jspredict-dc v3 using CesiumJS.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.140/Build/Cesium/Widgets/widgets.css">
+  <style>
+    :root {
+      --bg: #07111d;
+      --panel: rgba(8, 17, 28, 0.74);
+      --panel-strong: rgba(6, 11, 20, 0.92);
+      --line: rgba(130, 203, 255, 0.16);
+      --text: #eaf4ff;
+      --muted: rgba(234, 244, 255, 0.7);
+      --accent: #7be0ff;
+      --accent-2: #ffcf6c;
+      --danger: #ff7d7d;
+      --success: #89f2c0;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(123, 224, 255, 0.14), transparent 32%),
+        radial-gradient(circle at 80% 15%, rgba(255, 207, 108, 0.12), transparent 26%),
+        radial-gradient(circle at 50% 100%, rgba(95, 120, 255, 0.14), transparent 36%),
+        linear-gradient(135deg, #050b13 0%, #08131f 42%, #05111a 100%);
+      color: var(--text);
+      overflow: hidden;
+      font-family: "IBM Plex Mono", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+      background-size: 28px 28px;
+      mask-image: radial-gradient(circle at center, black, transparent 85%);
+      opacity: 0.45;
+    }
+
+    #app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: grid;
+      grid-template-columns: minmax(320px, 420px) 1fr;
+    }
+
+    .sidebar {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 24px;
+      overflow: auto;
+      background: linear-gradient(180deg, rgba(4, 10, 18, 0.92), rgba(4, 10, 18, 0.76));
+      border-right: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 18px 18px 16px;
+      border: 1px solid rgba(123, 224, 255, 0.18);
+      border-radius: 20px;
+      background: linear-gradient(180deg, rgba(16, 28, 42, 0.92), rgba(10, 16, 26, 0.9));
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      animation: rise 700ms ease both;
+    }
+
+    .eyebrow {
+      font-size: 11px;
+      letter-spacing: 0.24em;
+      text-transform: uppercase;
+      color: rgba(123, 224, 255, 0.75);
+    }
+
+    h1 {
+      margin: 0;
+      font-family: "Cormorant Garamond", serif;
+      font-weight: 700;
+      font-size: clamp(42px, 6vw, 66px);
+      line-height: 0.9;
+      letter-spacing: -0.04em;
+    }
+
+    .lede {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      max-width: 34ch;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .stat {
+      padding: 14px;
+      border: 1px solid rgba(130, 203, 255, 0.12);
+      border-radius: 16px;
+      background: rgba(7, 14, 24, 0.82);
+      min-height: 78px;
+    }
+
+    .stat label {
+      display: block;
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(234, 244, 255, 0.52);
+      margin-bottom: 8px;
+    }
+
+    .stat strong {
+      display: block;
+      font-size: 18px;
+      font-weight: 600;
+      line-height: 1.1;
+    }
+
+    .panel {
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(130, 203, 255, 0.12);
+      background: var(--panel);
+      backdrop-filter: blur(16px);
+    }
+
+    .panel h2 {
+      margin: 0 0 12px;
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(234, 244, 255, 0.62);
+    }
+
+    textarea, input, select {
+      width: 100%;
+      border: 1px solid rgba(130, 203, 255, 0.16);
+      border-radius: 14px;
+      background: rgba(4, 10, 18, 0.88);
+      color: var(--text);
+      font: inherit;
+      font-size: 12px;
+      line-height: 1.5;
+      padding: 12px 13px;
+      outline: none;
+      transition: border-color 150ms ease, transform 150ms ease, box-shadow 150ms ease;
+    }
+
+    textarea {
+      min-height: 148px;
+      resize: vertical;
+    }
+
+    textarea:focus, input:focus {
+      border-color: rgba(123, 224, 255, 0.55);
+      box-shadow: 0 0 0 4px rgba(123, 224, 255, 0.1);
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .field span {
+      font-size: 10px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(234, 244, 255, 0.58);
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button {
+      appearance: none;
+      border: 1px solid rgba(123, 224, 255, 0.2);
+      border-radius: 999px;
+      padding: 11px 14px;
+      background: linear-gradient(180deg, rgba(31, 64, 86, 0.94), rgba(12, 26, 40, 0.94));
+      color: var(--text);
+      font: inherit;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(123, 224, 255, 0.45);
+    }
+
+    button.primary {
+      background: linear-gradient(180deg, rgba(123, 224, 255, 0.95), rgba(59, 155, 190, 0.95));
+      color: #03111a;
+      border-color: transparent;
+      font-weight: 700;
+    }
+
+    .status {
+      min-height: 38px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+
+    .status.ok {
+      color: var(--success);
+    }
+
+    .status.err {
+      color: var(--danger);
+    }
+
+    .list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .transit {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 10px;
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(7, 14, 24, 0.86);
+      border: 1px solid rgba(130, 203, 255, 0.12);
+    }
+
+    .transit strong {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .transit span {
+      font-size: 11px;
+      color: rgba(234, 244, 255, 0.62);
+    }
+
+    .sample-list {
+      display: grid;
+      gap: 10px;
+      max-height: 280px;
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .sample-row {
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(7, 14, 24, 0.86);
+      border: 1px solid rgba(130, 203, 255, 0.12);
+    }
+
+    .sample-row-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: baseline;
+      margin-bottom: 10px;
+    }
+
+    .sample-row-head strong {
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .sample-row-head span {
+      font-size: 11px;
+      color: rgba(234, 244, 255, 0.62);
+      text-align: right;
+    }
+
+    .sample-metrics {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px 10px;
+    }
+
+    .sample-metrics span {
+      font-size: 11px;
+      color: rgba(234, 244, 255, 0.72);
+    }
+
+    .time-panel {
+      display: grid;
+      gap: 10px;
+    }
+
+    .time-axis {
+      display: grid;
+      gap: 8px;
+      padding: 12px;
+      border-radius: 14px;
+      background: rgba(7, 14, 24, 0.86);
+      border: 1px solid rgba(130, 203, 255, 0.12);
+    }
+
+    .time-axis-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 11px;
+      color: rgba(234, 244, 255, 0.62);
+    }
+
+    .time-axis-value {
+      color: var(--accent-2);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12px;
+    }
+
+    .time-axis input[type="range"] {
+      width: 100%;
+      margin: 0;
+      accent-color: #7be0ff;
+    }
+
+    .time-axis-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 10px;
+      color: rgba(234, 244, 255, 0.58);
+      letter-spacing: 0.08em;
+    }
+
+    .data-viewer {
+      position: fixed;
+      inset: 0;
+      z-index: 40;
+      display: none;
+      flex-direction: column;
+      background: #ffffff;
+      color: #111111;
+    }
+
+    .data-viewer.open {
+      display: flex;
+    }
+
+    .data-viewer-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 14px 18px;
+      border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+      background: #ffffff;
+      color: #111111;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .data-viewer-bar .data-close {
+      border-radius: 999px;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      background: #fff;
+      color: #111;
+      padding: 8px 12px;
+      font-size: 11px;
+    }
+
+    .data-stream {
+      flex: 1;
+      margin: 0;
+      padding: 18px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      color: #111;
+      background: #fff;
+    }
+
+    .viewer-wrap {
+      position: relative;
+      min-width: 0;
+      height: 100%;
+    }
+
+    #viewer {
+      position: absolute;
+      inset: 0;
+    }
+
+    .overlay {
+      position: absolute;
+      right: 24px;
+      top: 24px;
+      z-index: 2;
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      max-width: calc(100% - 48px);
+      pointer-events: none;
+    }
+
+    .chip {
+      pointer-events: auto;
+      padding: 10px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(123, 224, 255, 0.18);
+      background: rgba(6, 11, 20, 0.7);
+      backdrop-filter: blur(10px);
+      font-size: 11px;
+      color: rgba(234, 244, 255, 0.82);
+      box-shadow: var(--shadow);
+    }
+
+    .chip b {
+      color: var(--accent-2);
+      font-weight: 600;
+    }
+
+    .footer-note {
+      color: rgba(234, 244, 255, 0.5);
+      font-size: 11px;
+      line-height: 1.6;
+      padding: 2px 4px 24px;
+    }
+
+    .fade-in {
+      animation: rise 700ms ease both;
+    }
+
+    .delay-1 { animation-delay: 120ms; }
+    .delay-2 { animation-delay: 220ms; }
+    .delay-3 { animation-delay: 320ms; }
+    .delay-4 { animation-delay: 420ms; }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 980px) {
+      html, body {
+        overflow: auto;
+      }
+
+      #app {
+        grid-template-columns: 1fr;
+        min-height: 100%;
+      }
+
+      .sidebar {
+        border-right: none;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .viewer-wrap {
+        height: 76vh;
+        min-height: 560px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .sidebar {
+        padding: 16px;
+      }
+
+      .stat-grid,
+      .field-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .overlay {
+        left: 16px;
+        right: 16px;
+        top: 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <aside class="sidebar">
+      <section class="brand">
+        <div class="eyebrow">jspredict-dc v3 / cesium testbed</div>
+        <h1>Orbit, rendered.</h1>
+        <p class="lede">
+          A live Cesium visualization that exercises the v3 API, samples an orbit path,
+          and confirms the library behaves correctly in a browser.
+        </p>
+      </section>
+
+      <section class="stat-grid fade-in delay-1">
+        <div class="stat">
+          <label>Mode</label>
+          <strong id="modeText">Idle</strong>
+        </div>
+        <div class="stat">
+          <label>Samples</label>
+          <strong id="sampleCount">0</strong>
+        </div>
+        <div class="stat">
+          <label>Current Altitude</label>
+          <strong id="altitudeText">-</strong>
+        </div>
+        <div class="stat">
+          <label>Speed</label>
+          <strong id="speedText">-</strong>
+        </div>
+        <div class="stat">
+          <label>UTC Time</label>
+          <strong id="utcText">-</strong>
+        </div>
+        <div class="stat">
+          <label>TLE Epoch</label>
+          <strong id="tleEpochText">-</strong>
+        </div>
+        <div class="stat">
+          <label>TLE Age</label>
+          <strong id="tleAgeText">-</strong>
+        </div>
+      </section>
+
+      <section class="panel fade-in delay-2">
+        <h2>Satellite Input</h2>
+        <textarea id="tleInput" spellcheck="false"></textarea>
+        <div style="height: 10px"></div>
+        <div class="field-grid">
+          <div class="field">
+            <span>Observer Lat</span>
+            <input id="latInput" type="number" step="0.0001">
+          </div>
+          <div class="field">
+            <span>Observer Lon</span>
+            <input id="lonInput" type="number" step="0.0001">
+          </div>
+          <div class="field">
+            <span>Observer Alt km</span>
+            <input id="altInput" type="number" step="0.01">
+          </div>
+          <div class="field">
+            <span>Render Span min</span>
+            <input id="spanInput" type="number" step="1" min="10" max="2880">
+          </div>
+          <div class="field">
+            <span>Detail Satellite</span>
+            <select id="samplePreset" onchange="handleSamplePresetChange()">
+              <option value="starlink">STARLINK-1008 (LEO)</option>
+              <option value="beidou-geo">BEIDOU-2 G1 (GEO)</option>
+            </select>
+          </div>
+        </div>
+        <div style="height: 12px"></div>
+        <div class="buttons">
+          <button class="primary" id="renderBtn" onclick="handleRenderClick()">Render Orbit</button>
+          <button id="sampleBtn" onclick="handleSampleClick()">Load Sample</button>
+          <button id="latestBtn" onclick="handleLatestClick()">Load Latest TLE</button>
+          <button id="focusBtn" onclick="handleFocusClick()">Focus Satellite</button>
+          <button id="toggleViewBtn" onclick="handleToggleViewClick()">Switch to 2D</button>
+          <button id="moreBtn" onclick="handleMoreClick()">More</button>
+        </div>
+        <div style="height: 10px"></div>
+        <div class="status" id="statusText">Ready.</div>
+      </section>
+
+      <section class="panel fade-in delay-3">
+        <h2>UTC Axis</h2>
+        <div class="time-panel">
+          <div class="time-axis">
+            <div class="time-axis-head">
+              <span>Scrub current time</span>
+              <strong class="time-axis-value" id="timeAxisValue">-</strong>
+            </div>
+            <input
+              id="timeSlider"
+              type="range"
+              min="0"
+              max="1000"
+              value="500"
+              step="1"
+              onpointerdown="handleTimeSliderPointerDown()"
+              oninput="handleTimeSliderInput()"
+              onpointerup="handleTimeSliderPointerUp()"
+              onchange="handleTimeSliderChange()"
+            >
+            <div class="time-axis-footer">
+              <span id="timeStartLabel">START</span>
+              <span id="timeEndLabel">END</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel fade-in delay-4">
+        <h2>Sample Preview</h2>
+        <div class="sample-list" id="samplePreviewList">
+          <div class="sample-row">
+            <div class="sample-row-head">
+              <strong>Waiting</strong>
+              <span>Run a render to preview sampled output.</span>
+            </div>
+            <div class="sample-metrics">
+              <span>Time: -</span>
+              <span>Lat/Lon: -</span>
+              <span>Alt: -</span>
+              <span>Speed: -</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel fade-in delay-5">
+        <h2>Next Transit</h2>
+        <div class="list" id="transitList">
+          <div class="transit">
+            <strong>Waiting</strong>
+            <span>Run a render to inspect pass prediction.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel fade-in delay-5">
+        <h2>1008 Station Passes</h2>
+        <div class="list" id="stationPassList">
+          <div class="transit">
+            <strong>Waiting</strong>
+            <span>Run a render to inspect STARLINK-1008 AOS/LOS windows.</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel fade-in delay-5">
+        <h2>1008 ↔ BEIDOU Link Windows</h2>
+        <div class="list" id="pairWindowList">
+          <div class="transit">
+            <strong>Waiting</strong>
+            <span>Run a render to inspect satellite-to-satellite visibility windows.</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="footer-note fade-in delay-5">
+        GitHub Pages tip: set the repository site to serve this `index.html` from the root branch.
+      </div>
+    </aside>
+
+    <main class="viewer-wrap">
+      <div id="viewer"></div>
+      <div class="overlay">
+        <div class="chip">Live source: <b id="sourceLabel">TLE</b></div>
+        <div class="chip">Frame: <b>Cesium / ECEF</b></div>
+        <div class="chip">Library: <b>jspredict-dc</b></div>
+      </div>
+    </main>
+  </div>
+
+  <div class="data-viewer" id="dataViewer" aria-hidden="true">
+    <div class="data-viewer-bar">
+      <div>Data Stream / Plain Text</div>
+      <button class="data-close" id="closeDataViewerBtn" onclick="handleDataViewerClose()">Close</button>
+    </div>
+    <pre class="data-stream" id="dataStreamText">No data yet.</pre>
+  </div>
+
+  <script>
+    window.CESIUM_BASE_URL = 'https://cdn.jsdelivr.net/npm/cesium@1.140/Build/Cesium/';
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/cesium@1.140/Build/Cesium/Cesium.js"></script>
+  <script src="./dist/jspredict-dc.umd.js"></script>
+  <script>
+    (function () {
+      'use strict';
+
+      Cesium.buildModuleUrl.setBaseUrl(window.CESIUM_BASE_URL);
+
+      const DEFAULT_STARLINK_TLE =`STARLINK-1008           
+1 44714U 19074B   26110.25002315  .02219194  00000+0  53041-1 0  9990
+2 44714  53.1558 344.8432 0002025 106.0305 345.7371 15.37590305  5813`;
+
+      const BEIDOU_GEO_TLE = `BEIDOU-2 G1
+1 36287U 10001A   26109.85363417 -.00000277  00000+0  00000+0 0  9998
+2 36287   4.1565  60.5521 0003675 290.8249 304.3778  1.00271515 59584`;
+
+      let currentStarlinkTle = DEFAULT_STARLINK_TLE;
+
+      const defaultState = {
+        preset: 'starlink',
+        tle: DEFAULT_STARLINK_TLE,
+        lat: 39.9042,
+        lon: 116.4074,
+        alt: 0.05,
+        spanMinutes: 1440,
+      };
+
+      const LATEST_TLE_URL = 'https://celestrak.org/NORAD/elements/gp.php?INTDES=2019-074';
+
+      function getSatellites() {
+        return {
+          starlink: {
+            key: 'starlink',
+            name: 'STARLINK-1008',
+            tle: currentStarlinkTle,
+            pointColor: '#ffcf6c',
+            pathColor: '#7be0ff',
+          },
+          'beidou-geo': {
+            key: 'beidou-geo',
+            name: 'BEIDOU-2 G1',
+            tle: BEIDOU_GEO_TLE,
+            pointColor: '#89f2c0',
+            pathColor: '#89f2c0',
+          },
+        };
+      }
+
+      function $(id) {
+        return document.getElementById(id);
+      }
+
+      function formatNumber(value, digits) {
+        return Number.isFinite(value) ? value.toFixed(digits) : '-';
+      }
+
+      function formatUtc(date) {
+        return date instanceof Date && !Number.isNaN(date.getTime())
+          ? date.toISOString().replace('T', ' ').replace('Z', ' UTC')
+          : '-';
+      }
+
+      function parseTleEpoch(tleText) {
+        const lines = tleText.replace(/\r/g, '\n').split('\n').map((line) => line.trim()).filter(Boolean);
+        if (lines.length < 2) {
+          return null;
+        }
+
+        const line1 = lines.length >= 3 ? lines[lines.length - 2] : lines[0];
+        if (!line1 || line1.length < 32) {
+          return null;
+        }
+
+        const yearPart = Number.parseInt(line1.slice(18, 20), 10);
+        const dayPart = Number.parseFloat(line1.slice(20, 32));
+        if (!Number.isFinite(yearPart) || !Number.isFinite(dayPart)) {
+          return null;
+        }
+
+        const year = yearPart < 57 ? 2000 + yearPart : 1900 + yearPart;
+        const epochStart = Date.UTC(year, 0, 1, 0, 0, 0, 0);
+        const epoch = new Date(epochStart + (dayPart - 1) * 86400000);
+        return epoch;
+      }
+
+      function formatAge(ms) {
+        if (!Number.isFinite(ms)) {
+          return '-';
+        }
+
+        const absMs = Math.abs(ms);
+        const sign = ms >= 0 ? '' : '-';
+        const days = Math.floor(absMs / 86400000);
+        const hours = Math.floor((absMs % 86400000) / 3600000);
+        const mins = Math.floor((absMs % 3600000) / 60000);
+        return sign + days + 'd ' + String(hours).padStart(2, '0') + 'h ' + String(mins).padStart(2, '0') + 'm';
+      }
+
+      function updateTleEpochInfo(tleText, referenceDate) {
+        const epoch = parseTleEpoch(tleText);
+        $('tleEpochText').textContent = epoch ? formatUtc(epoch) : '-';
+        $('tleAgeText').textContent = epoch
+          ? formatAge(referenceDate.getTime() - epoch.getTime())
+          : '-';
+        return epoch;
+      }
+
+      // 同步时间轴上的起止时间和当前时间，保持侧栏显示和滑块状态一致。
+      function updateTimeAxisLabels(start, end, current) {
+        $('timeStartLabel').textContent = formatUtc(start);
+        $('timeEndLabel').textContent = formatUtc(end);
+        $('timeAxisValue').textContent = formatUtc(current);
+        $('utcText').textContent = formatUtc(current);
+      }
+
+      // 把当前时钟反算回滑块位置，避免动画播放时滑块和时间轴失步。
+      function syncTimeSliderToCurrentTime() {
+        if (!currentTimeWindow) {
+          return;
+        }
+
+        const currentDate = Cesium.JulianDate.toDate(viewer.clock.currentTime);
+        const totalMs = currentTimeWindow.end.getTime() - currentTimeWindow.start.getTime();
+        const fraction = totalMs > 0
+          ? (currentDate.getTime() - currentTimeWindow.start.getTime()) / totalMs
+          : 0.5;
+        const clamped = Math.max(0, Math.min(1, fraction));
+
+        if (!timeSliderDragging) {
+          const slider = $('timeSlider');
+          slider.value = String(Math.round(clamped * Number(slider.max || 1000)));
+        }
+
+        updateTimeAxisLabels(currentTimeWindow.start, currentTimeWindow.end, currentDate);
+      }
+
+      // 根据滑块的相对位置直接设置当前时间，用于手动对时和拖动检查。
+      function setViewerTimeFromSlider() {
+        if (!currentTimeWindow) {
+          return;
+        }
+
+        const slider = $('timeSlider');
+        const sliderMax = Number(slider.max || 1000);
+        const fraction = sliderMax > 0 ? Number(slider.value) / sliderMax : 0.5;
+        const currentMs = currentTimeWindow.start.getTime()
+          + (currentTimeWindow.end.getTime() - currentTimeWindow.start.getTime()) * fraction;
+        const currentDate = new Date(currentMs);
+
+        viewer.clock.currentTime = Cesium.JulianDate.fromDate(currentDate);
+        updateTimeAxisLabels(currentTimeWindow.start, currentTimeWindow.end, currentDate);
+
+        if (dataStreamWindow && !dataStreamWindow.closed) {
+          updateDataStream();
+        }
+      }
+
+      function setStatus(message, kind) {
+        const status = $('statusText');
+        status.className = 'status' + (kind ? ' ' + kind : '');
+        status.textContent = message;
+      }
+
+      function extractTleName(tleText) {
+        const lines = tleText.replace(/\r/g, '\n').split('\n').map((line) => line.trim()).filter(Boolean);
+        if (!lines.length) {
+          return 'Satellite';
+        }
+        if (lines[0].startsWith('1 ') || lines[0].startsWith('2 ')) {
+          return 'Satellite';
+        }
+        return lines[0];
+      }
+
+      function loadSample(presetKey) {
+        const samplePreset = $('samplePreset');
+        const satellites = getSatellites();
+        const key = presetKey || samplePreset.value || defaultState.preset;
+        const sat = satellites[key] || satellites[defaultState.preset];
+        samplePreset.value = key;
+        $('tleInput').value = sat.tle;
+        if (!$('latInput').value) {
+          $('latInput').value = defaultState.lat;
+        }
+        if (!$('lonInput').value) {
+          $('lonInput').value = defaultState.lon;
+        }
+        if (!$('altInput').value) {
+          $('altInput').value = defaultState.alt;
+        }
+        if (!$('spanInput').value) {
+          $('spanInput').value = defaultState.spanMinutes;
+        }
+        $('sourceLabel').textContent = 'Detail / ' + sat.name;
+        updateTleEpochInfo(sat.tle, new Date());
+        setStatus('Both satellites are shown. Detail panel switched to ' + sat.name + '.', 'ok');
+      }
+
+      // 从 CelesTrak 的多目标文本里提取指定卫星的三行 TLE。
+      function parseTleBlock(text, targetName) {
+        const lines = text.replace(/\r/g, '\n').split('\n').map((line) => line.trim()).filter(Boolean);
+        if (!lines.length) {
+          return null;
+        }
+
+        const target = targetName ? targetName.trim().toUpperCase() : '';
+        for (let index = 0; index < lines.length - 2; index += 1) {
+          const name = lines[index];
+          const line1 = lines[index + 1];
+          const line2 = lines[index + 2];
+          if (!line1.startsWith('1 ') || !line2.startsWith('2 ')) {
+            continue;
+          }
+
+          if (!target || name.trim().toUpperCase() === target) {
+            return [name, line1, line2].join('\n');
+          }
+        }
+
+        return null;
+      }
+
+      // 拉取最新公开 TLE，并把页面中的示例源替换成最新历元数据。
+      async function loadLatestTle() {
+        try {
+          setStatus('Loading latest TLE from CelesTrak...', 'ok');
+          const response = await fetch(LATEST_TLE_URL, { cache: 'no-store' });
+          if (!response.ok) {
+            throw new Error('HTTP ' + response.status);
+          }
+
+          const text = await response.text();
+          const latest = parseTleBlock(text, 'STARLINK-1008');
+          if (!latest) {
+            throw new Error('STARLINK-1008 TLE not found in response');
+          }
+
+          currentStarlinkTle = latest;
+          $('samplePreset').value = 'starlink';
+          $('tleInput').value = currentStarlinkTle;
+          $('sourceLabel').textContent = 'Detail / STARLINK-1008 (CelesTrak)';
+          updateTleEpochInfo(currentStarlinkTle, new Date());
+          setStatus('Latest STARLINK-1008 TLE loaded from CelesTrak. Render again to compare.', 'ok');
+        } catch (error) {
+          setStatus('Failed to load latest TLE: ' + error.message, 'err');
+        }
+      }
+
+      function getObserver() {
+        return [
+          Number($('latInput').value),
+          Number($('lonInput').value),
+          Number($('altInput').value),
+        ];
+      }
+
+      function getSpanMinutes() {
+        const value = Number($('spanInput').value);
+        if (!Number.isFinite(value) || value <= 0) {
+          return 1440;
+        }
+        return Math.max(1440, value);
+      }
+
+      function clearEntities(viewer) {
+        viewer.entities.removeAll();
+      }
+
+      function addLabelledPoint(viewer, cartesian, color, label, height, size) {
+        return viewer.entities.add({
+          position: cartesian,
+          point: {
+            pixelSize: size,
+            color,
+            outlineColor: Cesium.Color.WHITE.withAlpha(0.55),
+            outlineWidth: 1,
+          },
+          label: {
+            text: label,
+            font: '12px "IBM Plex Mono", monospace',
+            fillColor: Cesium.Color.WHITE,
+            showBackground: true,
+            backgroundColor: Cesium.Color.BLACK.withAlpha(0.45),
+            pixelOffset: new Cesium.Cartesian2(0, height),
+            disableDepthTestDistance: Number.POSITIVE_INFINITY,
+            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+          },
+        });
+      }
+
+      function addTrackedSatelliteEntity(viewer, config, sampledProperty, start, end) {
+        return viewer.entities.add({
+          availability: new Cesium.TimeIntervalCollection([
+            new Cesium.TimeInterval({
+              start: Cesium.JulianDate.fromDate(start),
+              stop: Cesium.JulianDate.fromDate(end),
+            }),
+          ]),
+          position: sampledProperty,
+          point: {
+            pixelSize: 8,
+            color: Cesium.Color.fromCssColorString(config.pointColor),
+            outlineColor: Cesium.Color.WHITE,
+            outlineWidth: 1,
+          },
+          label: {
+            text: config.name,
+            font: '11px "IBM Plex Mono", monospace',
+            fillColor: Cesium.Color.WHITE,
+            showBackground: true,
+            backgroundColor: Cesium.Color.BLACK.withAlpha(0.45),
+            pixelOffset: new Cesium.Cartesian2(0, -16),
+            verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
+          },
+        });
+      }
+
+      function eciToEcfCartesian(eci, gmst) {
+        const cosGmst = Math.cos(gmst);
+        const sinGmst = Math.sin(gmst);
+        const x = cosGmst * eci.x + sinGmst * eci.y;
+        const y = -sinGmst * eci.x + cosGmst * eci.y;
+        const z = eci.z;
+
+        return Cesium.Cartesian3.fromElements(x * 1000, y * 1000, z * 1000);
+      }
+
+      const earthImageryProvider = new Cesium.UrlTemplateImageryProvider({
+        url: new URL('./static/earth/{z}/{x}/{y}.jpg', window.location.href).href,
+        tilingScheme: new Cesium.WebMercatorTilingScheme(),
+        minimumLevel: 0,
+        maximumLevel: 1,
+      });
+
+      const viewer = new Cesium.Viewer('viewer', {
+        animation: true,
+        timeline: true,
+        geocoder: false,
+        homeButton: true,
+        navigationHelpButton: false,
+        sceneModePicker: false,
+        baseLayerPicker: false,
+        fullscreenButton: false,
+        selectionIndicator: false,
+        infoBox: false,
+        terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+      });
+
+      viewer.imageryLayers.removeAll();
+      viewer.imageryLayers.addImageryProvider(earthImageryProvider);
+
+      viewer.scene.globe.enableLighting = false;
+      viewer.scene.globe.show = true;
+      viewer.scene.globe.baseColor = Cesium.Color.fromCssColorString('#20384d');
+      viewer.scene.globe.depthTestAgainstTerrain = false;
+      viewer.scene.skyAtmosphere.show = false;
+      viewer.scene.moon.show = false;
+      viewer.scene.fog.enabled = true;
+      viewer.scene.fog.density = 0.00008;
+      viewer.scene.postProcessStages.fxaa.enabled = true;
+      viewer.scene.backgroundColor = Cesium.Color.fromCssColorString('#06101a');
+      viewer.clock.shouldAnimate = false;
+      viewer.camera.setView({
+        destination: Cesium.Cartesian3.fromDegrees(0, 18, 12000000),
+        orientation: {
+          heading: Cesium.Math.toRadians(0),
+          pitch: Cesium.Math.toRadians(-90),
+          roll: 0,
+        },
+      });
+
+      let currentOrbitEntity = null;
+      let currentGroundEntity = null;
+      let currentStarlinkEntity = null;
+      let currentBeidouEntity = null;
+      let observerEntity = null;
+      let currentSamples = [];
+      let currentSelectedSatelliteKey = defaultState.preset;
+      let currentStationPasses = [];
+      let currentPairWindows = [];
+      let dataStreamTick = null;
+      let dataStreamWindow = null;
+      let currentTimeWindow = null;
+      let currentViewMode = '3d';
+      let timeSliderDragging = false;
+
+      const linkCollection = viewer.scene.primitives.add(new Cesium.PolylineCollection());
+      const observerLinkPrimitive = linkCollection.add({
+        positions: [Cesium.Cartesian3.ZERO, Cesium.Cartesian3.ZERO],
+        width: 2,
+        material: Cesium.Material.fromType('Color', {
+          color: Cesium.Color.fromCssColorString('#ffcf6c').withAlpha(0.95),
+        }),
+      });
+      observerLinkPrimitive.show = false;
+      const pairLinkPrimitive = linkCollection.add({
+        positions: [Cesium.Cartesian3.ZERO, Cesium.Cartesian3.ZERO],
+        width: 2,
+        material: Cesium.Material.fromType('Color', {
+          color: Cesium.Color.fromCssColorString('#89f2c0').withAlpha(0.95),
+        }),
+      });
+      pairLinkPrimitive.show = false;
+      const observerLinkPositions = [new Cesium.Cartesian3(), new Cesium.Cartesian3()];
+      const pairLinkPositions = [new Cesium.Cartesian3(), new Cesium.Cartesian3()];
+
+      function updateViewButton() {
+        $('toggleViewBtn').textContent = currentViewMode === '3d' ? 'Switch to 2D' : 'Switch to 3D';
+      }
+
+      function setViewMode(nextMode) {
+        currentViewMode = nextMode;
+        updateViewButton();
+
+        if (!currentOrbitEntity || !currentGroundEntity) {
+          if (nextMode === '2d') {
+            viewer.scene.morphTo2D(0.6);
+          } else {
+            viewer.scene.morphTo3D(0.6);
+          }
+          return;
+        }
+
+        const showGroundTrack = nextMode === '2d';
+        currentOrbitEntity.show = !showGroundTrack;
+        currentGroundEntity.show = showGroundTrack;
+
+        const focusEntity = showGroundTrack ? currentGroundEntity : currentOrbitEntity;
+        if (showGroundTrack) {
+          viewer.scene.morphTo2D(0.6);
+          setStatus('2D mode active. Ground track is visible for subpoint alignment.', 'ok');
+        } else {
+          viewer.scene.morphTo3D(0.6);
+          setStatus('3D mode active. Space-track view is visible.', 'ok');
+        }
+
+        window.setTimeout(() => {
+          if (focusEntity) {
+            viewer.flyTo(focusEntity, {
+              duration: 0.8,
+              maximumHeight: showGroundTrack ? 2.4e7 : 7.5e6,
+            });
+          }
+        }, 650);
+      }
+
+      function renderTransits(source, observer, start, end) {
+        const passes = jspredict_dc.findTransits(source, observer, start, end, 0, 3);
+        if (!passes.length) {
+          $('transitList').innerHTML = '<div class="transit"><strong>No pass</strong><span>No visible transit in the render window.</span></div>';
+          return;
+        }
+
+        $('transitList').innerHTML = passes.map((pass, index) => {
+          const startText = new Date(pass.start).toLocaleString();
+          const durationMins = (pass.duration / 60000).toFixed(1);
+          return [
+            '<div class="transit">',
+            '<strong>Pass ' + (index + 1) + '</strong>',
+            '<span>' + startText + '</span>',
+            '<strong>Max ' + pass.maxElevation.toFixed(1) + '°</strong>',
+            '<span>' + durationMins + ' min</span>',
+            '</div>',
+          ].join('');
+        }).join('');
+      }
+
+      function renderStationPasses(windows) {
+        if (!windows.length) {
+          $('stationPassList').innerHTML = '<div class="transit"><strong>No pass</strong><span>STARLINK-1008 has no positive-elevation pass in the current window.</span></div>';
+          return;
+        }
+
+        $('stationPassList').innerHTML = windows.map((pass, index) => {
+          const startText = new Date(pass.start).toLocaleString();
+          const endText = new Date(pass.end).toLocaleString();
+          const durationMins = (pass.duration / 60000).toFixed(1);
+          return [
+            '<div class="transit">',
+            '<strong>Pass ' + (index + 1) + '</strong>',
+            '<span>AOS ' + startText + '</span>',
+            '<strong>LOS ' + endText + '</strong>',
+            '<span>' + durationMins + ' min / maxEl ' + pass.maxElevation.toFixed(1) + '°</span>',
+            '</div>',
+          ].join('');
+        }).join('');
+      }
+
+      function renderPairWindows(windows) {
+        if (!windows.length) {
+          $('pairWindowList').innerHTML = '<div class="transit"><strong>No link</strong><span>No STARLINK-1008 ↔ BEIDOU-2 G1 line-of-sight interval in this window.</span></div>';
+          return;
+        }
+
+        $('pairWindowList').innerHTML = windows.slice(0, 8).map((windowPair, index) => {
+          const startText = new Date(windowPair[0]).toLocaleString();
+          const endText = new Date(windowPair[1]).toLocaleString();
+          const durationMins = ((windowPair[1] - windowPair[0]) / 60000).toFixed(1);
+          return [
+            '<div class="transit">',
+            '<strong>Window ' + (index + 1) + '</strong>',
+            '<span>Start ' + startText + '</span>',
+            '<strong>End ' + endText + '</strong>',
+            '<span>' + durationMins + ' min</span>',
+            '</div>',
+          ].join('');
+        }).join('');
+      }
+
+      function inWindowList(timeMs, windows) {
+        return windows.some((windowItem) => timeMs >= windowItem[0] && timeMs <= windowItem[1]);
+      }
+
+      function inPassList(timeMs, passes) {
+        return passes.some((pass) => timeMs >= pass.start && timeMs <= pass.end);
+      }
+
+      function updateDynamicScene() {
+        if (!currentSamples.length) {
+          return;
+        }
+
+        const currentDate = Cesium.JulianDate.toDate(viewer.clock.currentTime);
+        const currentMs = currentDate.getTime();
+        const observation = jspredict_dc.observeAt($('tleInput').value.trim(), getObserver(), currentDate);
+        if (!observation) {
+          return;
+        }
+
+        $('altitudeText').textContent = formatNumber(observation.altitude, 2) + ' km';
+        const velocityNow = observation.eci && observation.eci.velocity;
+        const speedNow = velocityNow
+          ? Math.sqrt(velocityNow.x ** 2 + velocityNow.y ** 2 + velocityNow.z ** 2)
+          : NaN;
+        $('speedText').textContent = formatNumber(speedNow, 3) + ' km/s';
+
+        const observerVisible = inPassList(currentMs, currentStationPasses);
+        if (observerVisible && observerEntity && currentStarlinkEntity) {
+          const observerPosition = observerEntity.position.getValue(viewer.clock.currentTime);
+          const starlinkPosition = currentStarlinkEntity.position.getValue(viewer.clock.currentTime);
+          if (observerPosition && starlinkPosition) {
+            Cesium.Cartesian3.clone(observerPosition, observerLinkPositions[0]);
+            Cesium.Cartesian3.clone(starlinkPosition, observerLinkPositions[1]);
+            observerLinkPrimitive.positions = observerLinkPositions;
+            observerLinkPrimitive.show = true;
+          } else {
+            observerLinkPrimitive.show = false;
+          }
+        } else {
+          observerLinkPrimitive.show = false;
+        }
+
+        const satVisible = inWindowList(currentMs, currentPairWindows);
+        if (satVisible && currentStarlinkEntity && currentBeidouEntity) {
+          const starlinkPosition = currentStarlinkEntity.position.getValue(viewer.clock.currentTime);
+          const beidouPosition = currentBeidouEntity.position.getValue(viewer.clock.currentTime);
+          if (starlinkPosition && beidouPosition) {
+            Cesium.Cartesian3.clone(starlinkPosition, pairLinkPositions[0]);
+            Cesium.Cartesian3.clone(beidouPosition, pairLinkPositions[1]);
+            pairLinkPrimitive.positions = pairLinkPositions;
+            pairLinkPrimitive.show = true;
+          } else {
+            pairLinkPrimitive.show = false;
+          }
+        } else {
+          pairLinkPrimitive.show = false;
+        }
+
+        syncTimeSliderToCurrentTime();
+        if (dataStreamWindow && !dataStreamWindow.closed) {
+          updateDataStream();
+        }
+      }
+
+      // 把当前采样结果压缩成可读预览，方便快速检查数值是否合理。
+      function renderSamplePreview(samples) {
+        if (!samples.length) {
+          $('samplePreviewList').innerHTML = '<div class="sample-row"><div class="sample-row-head"><strong>No samples</strong><span>The renderer did not produce any points.</span></div><div class="sample-metrics"><span>Time: -</span><span>Lat/Lon: -</span><span>Alt: -</span><span>Speed: -</span></div></div>';
+          return;
+        }
+
+        const targetCount = 8;
+        const stride = Math.max(1, Math.ceil(samples.length / targetCount));
+        const previewSamples = [];
+
+        for (let index = 0; index < samples.length; index += stride) {
+          previewSamples.push(samples[index]);
+        }
+
+        const lastSample = samples[samples.length - 1];
+        if (previewSamples[previewSamples.length - 1] !== lastSample) {
+          previewSamples.push(lastSample);
+        }
+
+        $('samplePreviewList').innerHTML = previewSamples.slice(0, targetCount).map((entry, index) => {
+          const velocity = entry.observation.eci && entry.observation.eci.velocity;
+          const speed = velocity
+            ? Math.sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2)
+            : NaN;
+          const azimuth = Number.isFinite(entry.observation.azimuth) ? entry.observation.azimuth : NaN;
+          const elevation = Number.isFinite(entry.observation.elevation) ? entry.observation.elevation : NaN;
+          const rangeSat = Number.isFinite(entry.observation.rangeSat) ? entry.observation.rangeSat : NaN;
+          return [
+            '<div class="sample-row">',
+            '<div class="sample-row-head">',
+            '<strong>Sample ' + (index + 1) + '</strong>',
+            '<span>' + entry.time.toLocaleString() + '</span>',
+            '</div>',
+            '<div class="sample-metrics">',
+            '<span>Lat ' + formatNumber(entry.observation.latitude, 4) + '°</span>',
+            '<span>Lon ' + formatNumber(entry.observation.longitude, 4) + '°</span>',
+            '<span>Alt ' + formatNumber(entry.observation.altitude, 2) + ' km</span>',
+            '<span>Speed ' + formatNumber(speed, 3) + ' km/s</span>',
+            '<span>Az ' + formatNumber(azimuth, 2) + '°</span>',
+            '<span>El ' + formatNumber(elevation, 2) + '°</span>',
+            '<span>Range ' + formatNumber(rangeSat, 2) + ' km</span>',
+            '<span>GMST ' + formatNumber(entry.observation.gmst, 5) + '</span>',
+            '</div>',
+            '</div>',
+          ].join('');
+        }).join('');
+      }
+
+      // 生成纯文本数据流，供白底详情页直接查看或复制。
+      function buildDataStream(samples, currentSample, observer, start, end) {
+        const lines = [];
+        lines.push('JSPREDICT-DC DATA STREAM');
+        lines.push('mode=plain-text');
+        lines.push('source=' + $('sourceLabel').textContent);
+        lines.push('observer=' + observer[0].toFixed(4) + ',' + observer[1].toFixed(4) + ',' + observer[2].toFixed(2) + 'km');
+        lines.push('window=' + start.toISOString() + ' -> ' + end.toISOString());
+        lines.push('samples=' + samples.length);
+        lines.push('---');
+
+        samples.forEach((entry, index) => {
+          const velocity = entry.observation.eci && entry.observation.eci.velocity;
+          const speed = velocity
+            ? Math.sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2)
+            : NaN;
+          lines.push(
+            [
+              String(index + 1).padStart(4, '0'),
+              entry.time.toISOString(),
+              'lat=' + formatNumber(entry.observation.latitude, 6),
+              'lon=' + formatNumber(entry.observation.longitude, 6),
+              'alt=' + formatNumber(entry.observation.altitude, 3) + 'km',
+              'speed=' + formatNumber(speed, 6) + 'km/s',
+              'az=' + formatNumber(entry.observation.azimuth, 3) + 'deg',
+              'el=' + formatNumber(entry.observation.elevation, 3) + 'deg',
+              'range=' + formatNumber(entry.observation.rangeSat, 3) + 'km',
+              'sunlit=' + String(Boolean(entry.observation.sunlit)),
+            ].join(' | ')
+          );
+        });
+
+        if (currentSample) {
+          const velocity = currentSample.observation.eci && currentSample.observation.eci.velocity;
+          const speed = velocity
+            ? Math.sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2)
+            : NaN;
+          lines.push('---');
+          lines.push('current=' + currentSample.time.toISOString());
+          lines.push('current.lat=' + formatNumber(currentSample.observation.latitude, 6));
+          lines.push('current.lon=' + formatNumber(currentSample.observation.longitude, 6));
+          lines.push('current.alt=' + formatNumber(currentSample.observation.altitude, 3) + 'km');
+          lines.push('current.speed=' + formatNumber(speed, 6) + 'km/s');
+          lines.push('current.az=' + formatNumber(currentSample.observation.azimuth, 3) + 'deg');
+          lines.push('current.el=' + formatNumber(currentSample.observation.elevation, 3) + 'deg');
+          lines.push('current.range=' + formatNumber(currentSample.observation.rangeSat, 3) + 'km');
+        }
+
+        return lines.join('\n');
+      }
+
+      // 用当前时钟位置挑出最接近的采样点，并刷新纯文本详情页。
+      function updateDataStream() {
+        if (!currentSamples.length) {
+          return;
+        }
+
+        const currentTime = Cesium.JulianDate.toDate(viewer.clock.currentTime);
+        const streamStart = Cesium.JulianDate.toDate(viewer.clock.startTime);
+        const streamEnd = Cesium.JulianDate.toDate(viewer.clock.stopTime);
+        let closest = currentSamples[0];
+        let closestDelta = Number.POSITIVE_INFINITY;
+
+        for (const sample of currentSamples) {
+          const delta = Math.abs(sample.time.getTime() - currentTime.getTime());
+          if (delta < closestDelta) {
+            closestDelta = delta;
+            closest = sample;
+          }
+        }
+
+        const streamText = buildDataStream(
+          currentSamples,
+          closest,
+          getObserver(),
+          streamStart || currentSamples[0].time,
+          streamEnd || currentSamples[currentSamples.length - 1].time,
+        );
+
+        if (dataStreamWindow && !dataStreamWindow.closed) {
+          const streamEl = dataStreamWindow.document.getElementById('data-stream-text');
+          if (streamEl) {
+            streamEl.textContent = streamText;
+          }
+        } else {
+          $('dataStreamText').textContent = streamText;
+        }
+      }
+
+      function renderDataWindowLayout(targetWindow) {
+        targetWindow.document.open();
+        targetWindow.document.write([
+          '<!doctype html>',
+          '<html lang="en"><head><meta charset="utf-8">',
+          '<meta name="viewport" content="width=device-width, initial-scale=1">',
+          '<title>jspredict-dc data stream</title>',
+          '<style>',
+          'html,body{height:100%;margin:0;background:#fff;color:#111;font-family:Consolas,"SFMono-Regular","IBM Plex Mono",monospace;}',
+          '.bar{position:sticky;top:0;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid #ddd;background:#fff;}',
+          '.bar b{font-size:13px;letter-spacing:.08em;text-transform:uppercase;}',
+          '.bar button{padding:8px 12px;border:1px solid #bbb;border-radius:999px;background:#fff;cursor:pointer;}',
+          'pre{margin:0;padding:16px;white-space:pre-wrap;word-break:break-word;line-height:1.65;font-size:12px;}',
+          '</style></head><body>',
+          '<div class="bar"><b>Data Stream / Plain Text</b><button id="close-btn" type="button">Close</button></div>',
+          '<pre id="data-stream-text">No data yet.</pre>',
+          '<script>document.getElementById("close-btn").onclick=function(){window.close();};<\/script>',
+          '</body></html>',
+        ].join(''));
+        targetWindow.document.close();
+      }
+
+      // 打开新窗口白底数据流并启动文本刷新。
+      function openDataViewer() {
+        if (!dataStreamWindow || dataStreamWindow.closed) {
+          dataStreamWindow = window.open('', 'jspredict-dc-data-stream', 'width=980,height=760');
+          if (!dataStreamWindow) {
+            setStatus('Popup was blocked. Allow popups and try again.', 'err');
+            return;
+          }
+          renderDataWindowLayout(dataStreamWindow);
+        } else {
+          dataStreamWindow.focus();
+        }
+
+        updateDataStream();
+        clearInterval(dataStreamTick);
+        dataStreamTick = setInterval(() => {
+          if (!dataStreamWindow || dataStreamWindow.closed) {
+            clearInterval(dataStreamTick);
+            dataStreamTick = null;
+            dataStreamWindow = null;
+            return;
+          }
+          updateDataStream();
+        }, 1000);
+      }
+
+      // 关闭数据流窗口并停止文本刷新。
+      function closeDataViewer() {
+        if (dataStreamWindow && !dataStreamWindow.closed) {
+          dataStreamWindow.close();
+        }
+        dataStreamWindow = null;
+        clearInterval(dataStreamTick);
+        dataStreamTick = null;
+      }
+
+      function renderOrbit() {
+        const satellites = getSatellites();
+        const selectedKey = satellites[$('samplePreset').value] ? $('samplePreset').value : defaultState.preset;
+        currentSelectedSatelliteKey = selectedKey;
+        const selectedSatellite = satellites[selectedKey];
+        const tle = selectedSatellite.tle;
+        $('tleInput').value = tle;
+        $('sourceLabel').textContent = 'Detail / ' + selectedSatellite.name;
+
+        const observer = getObserver();
+        const spanMinutes = getSpanMinutes();
+        const centerTime = new Date();
+        const halfSpanMs = spanMinutes * 60000 / 2;
+        const start = new Date(centerTime.getTime() - halfSpanMs);
+        const end = new Date(centerTime.getTime() + halfSpanMs);
+        const stepSeconds = 30;
+
+        if (!tle) {
+          setStatus('TLE input is empty.', 'err');
+          return;
+        }
+
+        const sampledByKey = {};
+        Object.keys(satellites).forEach((key) => {
+          sampledByKey[key] = {
+            samples: [],
+            sampledProperty: new Cesium.SampledPositionProperty(),
+          };
+        });
+
+        const currentObs = jspredict_dc.observeAt(tle, observer, centerTime);
+        if (!currentObs) {
+          setStatus('The current orbit input could not be propagated at this time.', 'err');
+          return;
+        }
+
+        for (let t = start.getTime(); t <= end.getTime(); t += stepSeconds * 1000) {
+          const time = new Date(t);
+          Object.keys(satellites).forEach((key) => {
+            const satObservation = jspredict_dc.observeAt(satellites[key].tle, observer, time);
+            if (!satObservation || !satObservation.eci || !satObservation.eci.position) {
+              return;
+            }
+
+            const position = eciToEcfCartesian(satObservation.eci.position, satObservation.gmst);
+            sampledByKey[key].samples.push({
+              time,
+              observation: satObservation,
+              position,
+            });
+            sampledByKey[key].sampledProperty.addSample(Cesium.JulianDate.fromDate(time), position);
+          });
+        }
+
+        const selectedSamples = sampledByKey[selectedKey].samples;
+        if (!selectedSamples.length) {
+          setStatus('No valid samples were produced. Try another TLE.', 'err');
+          return;
+        }
+
+        clearEntities(viewer);
+        observerLinkPrimitive.show = false;
+        pairLinkPrimitive.show = false;
+
+        const orbitPositions = selectedSamples.map((entry) => entry.position);
+        const groundPositions = selectedSamples.map((entry) => Cesium.Cartesian3.fromDegrees(
+          entry.observation.longitude,
+          entry.observation.latitude,
+          0,
+        ));
+        const currentSample = selectedSamples.reduce((closest, entry) => {
+          const closestDelta = Math.abs(closest.time.getTime() - centerTime.getTime());
+          const entryDelta = Math.abs(entry.time.getTime() - centerTime.getTime());
+          return entryDelta < closestDelta ? entry : closest;
+        }, selectedSamples[0]);
+        currentSamples = selectedSamples;
+        currentTimeWindow = { start, end };
+        const tleEpoch = updateTleEpochInfo(tle, centerTime);
+        currentStationPasses = jspredict_dc.findTransits(satellites.starlink.tle, observer, start, end, 0, 10);
+        currentPairWindows = jspredict_dc.satelliteVisibilityWindows(satellites.starlink.tle, satellites['beidou-geo'].tle, start, end, 60);
+
+        currentOrbitEntity = viewer.entities.add({
+          show: currentViewMode !== '2d',
+          polyline: {
+            positions: orbitPositions,
+            width: 3,
+            material: new Cesium.PolylineGlowMaterialProperty({
+              glowPower: 0.15,
+              color: Cesium.Color.fromCssColorString(selectedSatellite.pathColor),
+            }),
+          },
+        });
+
+        currentGroundEntity = viewer.entities.add({
+          show: currentViewMode === '2d',
+          polyline: {
+            positions: groundPositions,
+            width: 2,
+            material: new Cesium.PolylineGlowMaterialProperty({
+              glowPower: 0.08,
+              color: Cesium.Color.fromCssColorString('#ffcf6c'),
+            }),
+          },
+        });
+
+        observerEntity = addLabelledPoint(
+          viewer,
+          Cesium.Cartesian3.fromDegrees(observer[1], observer[0], observer[2] * 1000),
+          Cesium.Color.fromCssColorString('#ffcf6c'),
+          'Observer',
+          16,
+          9,
+        );
+
+        currentStarlinkEntity = addTrackedSatelliteEntity(
+          viewer,
+          satellites.starlink,
+          sampledByKey.starlink.sampledProperty,
+          start,
+          end,
+        );
+        currentBeidouEntity = addTrackedSatelliteEntity(
+          viewer,
+          satellites['beidou-geo'],
+          sampledByKey['beidou-geo'].sampledProperty,
+          start,
+          end,
+        );
+
+        viewer.clock.startTime = Cesium.JulianDate.fromDate(start);
+        viewer.clock.stopTime = Cesium.JulianDate.fromDate(end);
+        viewer.clock.currentTime = Cesium.JulianDate.fromDate(centerTime);
+        viewer.clock.clockRange = Cesium.ClockRange.LOOP_STOP;
+        viewer.clock.clockStep = Cesium.ClockStep.SYSTEM_CLOCK_MULTIPLIER;
+        viewer.clock.multiplier = 1;
+        viewer.clock.shouldAnimate = true;
+        $('timeSlider').value = '500';
+        updateTimeAxisLabels(start, end, centerTime);
+
+        viewer.trackedEntity = null;
+
+        $('modeText').textContent = 'Rendered / ' + selectedSatellite.name;
+        $('sampleCount').textContent = String(selectedSamples.length);
+        $('altitudeText').textContent = formatNumber(currentSample.observation.altitude, 2) + ' km';
+        const velocity = currentSample.observation.eci && currentSample.observation.eci.velocity;
+        const speed = velocity
+          ? Math.sqrt(velocity.x ** 2 + velocity.y ** 2 + velocity.z ** 2)
+          : NaN;
+        $('speedText').textContent = formatNumber(speed, 3) + ' km/s';
+        renderSamplePreview(selectedSamples);
+        renderStationPasses(currentStationPasses);
+        renderPairWindows(currentPairWindows);
+
+        if (tleEpoch) {
+          const tleAgeDays = Math.abs((centerTime.getTime() - tleEpoch.getTime()) / 86400000);
+          if (tleAgeDays > 7) {
+            setStatus('Orbit rendered, but the TLE is ' + tleAgeDays.toFixed(1) + ' days old. Compare with a matching UTC epoch.', 'err');
+          } else {
+            setStatus('Orbit rendered successfully. The scene is now animating the sampled path.', 'ok');
+          }
+        } else {
+          setStatus('Orbit rendered successfully. The scene is now animating the sampled path.', 'ok');
+        }
+        renderTransits(selectedSatellite.tle, observer, start, end);
+        updateDynamicScene();
+      }
+
+      window.handleRenderClick = renderOrbit;
+      window.handleSampleClick = function () {
+        loadSample($('samplePreset').value);
+        renderOrbit();
+      };
+      window.handleSamplePresetChange = function () {
+        loadSample($('samplePreset').value);
+        renderOrbit();
+      };
+      window.handleLatestClick = async function () {
+        await loadLatestTle();
+        renderOrbit();
+      };
+      window.handleFocusClick = function () {
+        if (currentOrbitEntity) {
+          viewer.flyTo(currentOrbitEntity, { duration: 1.0 });
+        }
+      };
+      window.handleToggleViewClick = function () {
+        setViewMode(currentViewMode === '3d' ? '2d' : '3d');
+      };
+      window.handleMoreClick = openDataViewer;
+      window.handleDataViewerClose = closeDataViewer;
+      window.handleTimeSliderPointerDown = function () {
+        timeSliderDragging = true;
+        viewer.clock.shouldAnimate = false;
+      };
+      window.handleTimeSliderInput = setViewerTimeFromSlider;
+      window.handleTimeSliderPointerUp = function () {
+        timeSliderDragging = false;
+        syncTimeSliderToCurrentTime();
+      };
+      window.handleTimeSliderChange = function () {
+        timeSliderDragging = false;
+        syncTimeSliderToCurrentTime();
+      };
+
+      viewer.scene.preRender.addEventListener(updateDynamicScene);
+
+      updateViewButton();
+      loadSample(defaultState.preset);
+      renderOrbit();
+    }());
+  </script>
+</body>
+</html>
